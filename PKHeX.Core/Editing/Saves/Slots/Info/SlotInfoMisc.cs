@@ -1,52 +1,35 @@
-namespace PKHeX.Core
+namespace PKHeX.Core;
+
+/// <summary>
+/// Miscellaneous origination <see cref="ISlotInfo"/>
+/// </summary>
+public sealed record SlotInfoMisc(byte[] Data, int Slot, int Offset, bool PartyFormat = false) : ISlotInfo
 {
-    /// <summary>
-    /// Miscellaneous origination <see cref="ISlotInfo"/>
-    /// </summary>
-    public sealed class SlotInfoMisc : ISlotInfo
+    public SlotOrigin Origin => PartyFormat ? SlotOrigin.Party : SlotOrigin.Box;
+    public bool CanWriteTo(SaveFile sav) => false;
+    public WriteBlockedMessage CanWriteTo(SaveFile sav, PKM pk) => WriteBlockedMessage.InvalidDestination;
+    public StorageSlotType Type { get; init; }
+
+    public SlotInfoMisc(SaveFile sav, int slot, int offset, bool party = false) : this(GetBuffer(sav), slot, offset, party) { }
+
+    private static byte[] GetBuffer(SaveFile sav) => sav switch
     {
-        public int Slot { get; }
-        public bool PartyFormat { get; }
-        public int Offset { get; }
-        public bool CanWriteTo(SaveFile sav) => false;
-        public WriteBlockedMessage CanWriteTo(SaveFile sav, PKM pkm) => WriteBlockedMessage.InvalidDestination;
-        public StorageSlotType Type { get; set; }
+        SAV4 s => s.General,
+        SAV3 s3 => s3.Large,
+        _ => sav.Data,
+    };
 
-        private readonly byte[] Data; // buffer to r/w
+    public bool WriteTo(SaveFile sav, PKM pk, PKMImportSetting setting = PKMImportSetting.UseDefault)
+    {
+        if (PartyFormat)
+            sav.SetSlotFormatParty(pk, Data, Offset, setting, setting);
+        else
+            sav.SetSlotFormatStored(pk, Data, Offset, setting, setting);
+        return true;
+    }
 
-        public SlotInfoMisc(SaveFile sav, int slot, int offset, bool party = false)
-        {
-            Slot = slot;
-            Offset = offset;
-            PartyFormat = party;
-            Data = sav is SAV4 s ? s.General : sav.Data;
-        }
-
-        public SlotInfoMisc(byte[] data, int slot, int offset, bool party = false)
-        {
-            Slot = slot;
-            Offset = offset;
-            PartyFormat = party;
-            Data = data;
-        }
-
-        public bool WriteTo(SaveFile sav, PKM pkm, PKMImportSetting setting = PKMImportSetting.UseDefault)
-        {
-            if (PartyFormat)
-                sav.SetSlotFormatParty(pkm, Data, Offset, setting, setting);
-            else
-                sav.SetSlotFormatStored(pkm, Data, Offset, setting, setting);
-            return true;
-        }
-
-        public PKM Read(SaveFile sav)
-        {
-            return PartyFormat ? sav.GetPartySlot(Data, Offset) : sav.GetStoredSlot(Data, Offset);
-        }
-
-        private bool Equals(SlotInfoMisc other) => Offset == other.Offset;
-        public bool Equals(ISlotInfo other) => other is SlotInfoMisc p && Equals(p);
-        public override bool Equals(object obj) => obj is SlotInfoMisc p && Equals(p);
-        public override int GetHashCode() => Offset;
+    public PKM Read(SaveFile sav)
+    {
+        return PartyFormat ? sav.GetPartySlot(Data, Offset) : sav.GetStoredSlot(Data, Offset);
     }
 }

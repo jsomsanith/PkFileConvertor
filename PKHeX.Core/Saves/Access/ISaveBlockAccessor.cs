@@ -1,9 +1,14 @@
 ﻿using System.Collections.Generic;
 
-namespace PKHeX.Core
+namespace PKHeX.Core;
+
+/// <summary>
+/// Interface for Accessing named blocks within a save file.
+/// </summary>
+public interface ISaveBlockAccessor<out T>
 {
-    public interface ISaveBlockAccessor<out T>
-    {
-        IReadOnlyList<T> BlockInfo { get; }
-    }
+    /// <summary>
+    /// List of all known block details.
+    /// </summary>
+    IReadOnlyList<T> BlockInfo { get; }
 }

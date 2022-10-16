@@ -1,21 +1,13 @@
-﻿namespace PKHeX.Core
+﻿namespace PKHeX.Core;
+
+public readonly record struct TurnStartInstruction(TurnStartCode TurnCode, int Count)
 {
-    public readonly struct TurnStartInstruction
+    public static TurnStartInstruction Get(byte Op)
     {
-        public readonly TurnStartCode TurnCode;
-        public readonly int Count;
-
-        public TurnStartInstruction(byte Op)
-        {
-            TurnCode = (TurnStartCode)(Op >> 4);
-            Count = Op & 0xF;
-        }
-
-        public byte GetRawValue => (byte) ((Count & 0xF) | ((byte) TurnCode << 4));
-
-        public override bool Equals(object obj) => obj is TurnStartInstruction t && t.GetRawValue == GetRawValue;
-        public override int GetHashCode() => GetRawValue;
-        public static bool operator ==(TurnStartInstruction left, TurnStartInstruction right) => left.Equals(right);
-        public static bool operator !=(TurnStartInstruction left, TurnStartInstruction right) => !(left == right);
+        var TurnCode = (TurnStartCode)(Op >> 4);
+        var Count = Op & 0xF;
+        return new TurnStartInstruction(TurnCode, Count);
     }
+
+    public byte GetRawValue => (byte) ((Count & 0xF) | ((byte) TurnCode << 4));
 }
