@@ -36,8 +36,12 @@ namespace PK8toPK7
             new KeyValuePair<string, DateTime>("788 ★ - Tapu Fini - 0D94E7BC26ED", new DateTime(2019, 6, 11)),
 
             // SWSH
+            new KeyValuePair<string, DateTime>("591 ★ - KOR Champ Amoongus뽀록나 - 55D5ADEEC8CD", new DateTime(2020, 8, 9)),
             new KeyValuePair<string, DateTime>("113 - MrDonut 50 Chansey ラッキー - EC79E88CE680", new DateTime(2020, 12, 4)),
             new KeyValuePair<string, DateTime>("849 ★ - PTCG Tie-In Toxtricity - AEE676750696", new DateTime(2021, 2, 19)),
+            new KeyValuePair<string, DateTime>("474 - KOR Champ Porygon-Z 폴리곤Z - 221B1C415E61", new DateTime(2021, 8, 21)),
+            new KeyValuePair<string, DateTime>("302 - JPN Champ Sableye ヤミラミ - 03A14D84F8FB", new DateTime(2022, 6, 11)),
+            new KeyValuePair<string, DateTime>("861 - KOR Grimmsnarl 오롱털 - 0425A0E0E274", new DateTime(2022, 6, 11)),
             new KeyValuePair<string, DateTime>("251 ★ - Global Jungle Celebi - 29C5F2026F12", new DateTime(2021, 10, 7)),
             new KeyValuePair<string, DateTime>("025-09 - JPN Movie Pikachu ピカチュウ - C0FB72ECFAD7", new DateTime(2022, 8, 11)),
             new KeyValuePair<string, DateTime>("882 - JPN PKM Masters Dracovish ウオノラゴン - 068EF2CE51F0", new DateTime(2022, 8, 12)),
