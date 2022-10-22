@@ -1,9 +1,12 @@
-namespace PKHeX.Core;
+﻿using System.Collections.Generic;
 
-/// <summary>
-/// Interface that exposes a Moveset for the object.
-/// </summary>
-public interface IMoveset
+namespace PKHeX.Core
 {
-    Moveset Moves { get; }
+    /// <summary>
+    /// Interface that exposes a Moveset for the object.
+    /// </summary>
+    internal interface IMoveset
+    {
+        IReadOnlyList<int> Moves { get; }
+    }
 }

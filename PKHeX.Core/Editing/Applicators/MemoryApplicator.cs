@@ -1,50 +1,40 @@
-﻿namespace PKHeX.Core;
-
-/// <summary>
-/// Logic for modifying the Memory parameters of a <see cref="PKM"/>.
-/// </summary>
-public static class MemoryApplicator
+﻿namespace PKHeX.Core
 {
-    /// <summary>
-    /// Sets all Memory related data to the default value (zero).
-    /// </summary>
-    /// <param name="pk">Pokémon to modify.</param>
-    public static void ClearMemories(this PKM pk)
+    public static class MemoryApplicator
     {
-        if (pk is IAffection a)
-            a.OT_Affection = a.HT_Affection = 0;
-        if (pk is IMemoryOT o)
-            o.ClearMemoriesOT();
-        if (pk is IMemoryHT h)
-            h.ClearMemoriesHT();
-    }
-
-    /// <summary>
-    /// Sets the Memory details to a Hatched Egg's memories.
-    /// </summary>
-    /// <param name="pk">Pokémon to modify.</param>
-    public static void SetHatchMemory6(this PKM pk)
-    {
-        if (pk is IMemoryOT o)
+        /// <summary>
+        /// Sets all Memory related data to the default value (zero).
+        /// </summary>
+        /// <param name="pk">Pokémon to modify.</param>
+        public static void ClearMemories(this PKM pk)
         {
-            o.OT_Memory = 2;
-            o.OT_Feeling = MemoryContext6.GetRandomFeeling6(2);
-            o.OT_Intensity = 1;
-            o.OT_TextVar = pk.XY ? (ushort)43 : (ushort)27; // riverside road : battling spot
+            pk.OT_Memory = pk.OT_Affection = pk.OT_Feeling = pk.OT_Intensity = pk.OT_TextVar =
+                pk.HT_Memory = pk.HT_Affection = pk.HT_Feeling = pk.HT_Intensity = pk.HT_TextVar = 0;
         }
-        if (pk is IAffection a)
-            a.OT_Affection = 0;
-    }
 
-    /// <summary>
-    /// Sets a random memory specific to <see cref="GameVersion.Gen6"/> locality.
-    /// </summary>
-    /// <param name="pk">Pokémon to modify.</param>
-    public static void SetRandomMemory6(this PK6 pk)
-    {
-        // for lack of better randomization :)
-        pk.OT_Memory = 63;
-        pk.OT_Intensity = 6;
-        pk.OT_Feeling = MemoryContext6.GetRandomFeeling6(pk.OT_Memory);
+        /// <summary>
+        /// Sets the Memory details to a Hatched Egg's memories.
+        /// </summary>
+        /// <param name="pk">Pokémon to modify.</param>
+        public static void SetHatchMemory6(this PKM pk)
+        {
+            pk.OT_Memory = 2;
+            pk.OT_Affection = 0;
+            pk.OT_Feeling = Memories.GetRandomFeeling(pk.OT_Memory);
+            pk.OT_Intensity = 1;
+            pk.OT_TextVar = pk.XY ? 43 : 27; // riverside road : battling spot
+        }
+
+        /// <summary>
+        /// Sets a random memory specific to <see cref="GameVersion.Gen6"/> locality.
+        /// </summary>
+        /// <param name="pk">Pokémon to modify.</param>
+        public static void SetRandomMemory6(this PKM pk)
+        {
+            // for lack of better randomization :)
+            pk.OT_Memory = 63;
+            pk.OT_Intensity = 6;
+            pk.OT_Feeling = Memories.GetRandomFeeling(pk.OT_Memory);
+        }
     }
 }

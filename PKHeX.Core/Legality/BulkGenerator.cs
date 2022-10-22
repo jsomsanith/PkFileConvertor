@@ -1,73 +1,52 @@
-using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
 
-namespace PKHeX.Core;
-
-/// <summary>
-/// Logic for generating a large amount of <see cref="PKM"/> data.
-/// </summary>
-public static class BulkGenerator
+namespace PKHeX.Core
 {
-    public static List<PKM> GetLivingDex(this SaveFile sav)
+    /// <summary>
+    /// Logic for generating a large amount of <see cref="PKM"/> data.
+    /// </summary>
+    public static class BulkGenerator
     {
-        var speciesToGenerate = GetAll(1, sav.MaxSpeciesID);
-        return GetLivingDex(sav, speciesToGenerate);
-    }
-
-    private static IEnumerable<ushort> GetAll(ushort min, ushort max)
-    {
-        for (ushort i = min; i <= max; i++)
-            yield return i;
-    }
-
-    private static List<PKM> GetLivingDex(SaveFile sav, IEnumerable<ushort> speciesToGenerate)
-    {
-        return sav.GetLivingDex(speciesToGenerate, sav.BlankPKM);
-    }
-
-    public static List<PKM> GetLivingDex(this ITrainerInfo tr, IEnumerable<ushort> speciesToGenerate, PKM blank)
-    {
-        var result = new List<PKM>();
-        var destType = blank.GetType();
-        foreach (var s in speciesToGenerate)
+        public static IList<PKM> GetLivingDex(SaveFile sav)
         {
-            var pk = blank.Clone();
-            pk.Species = s;
-            pk.Gender = pk.GetSaneGender();
-
-            var pi = pk.PersonalInfo;
-            for (byte f = 0; f < pi.FormCount; f++)
-            {
-                var entry = tr.GetLivingEntry(pk, s, f, destType);
-                if (entry == null)
-                    continue;
-                result.Add(entry);
-            }
+            var speciesToGenerate = Enumerable.Range(1, sav.MaxSpeciesID);
+            return GetLivingDex(sav, speciesToGenerate, sav.BlankPKM);
         }
 
-        return result;
-    }
+        public static List<PKM> GetLivingDex(ITrainerInfo tr, IEnumerable<int> speciesToGenerate, PKM blank)
+        {
+            var result = new List<PKM>();
+            var destType = blank.GetType();
+            foreach (var s in speciesToGenerate)
+            {
+                var pk = blank.Clone();
+                pk.Species = s;
+                pk.Gender = pk.GetSaneGender();
 
-    public static PKM? GetLivingEntry(this ITrainerInfo tr, PKM template, ushort species, byte form, Type destType)
-    {
-        template.Species = species;
-        template.Form = form;
-        template.Gender = template.GetSaneGender();
+                var pi = pk.PersonalInfo;
+                for (int i = 0; i < pi.FormeCount; i++)
+                {
+                    pk.AltForm = i;
+                    if (s == (int) Species.Indeedee || s == (int) Species.Meowstic)
+                        pk.Gender = i;
 
-        var f = EncounterMovesetGenerator.GeneratePKMs(template, tr, template.Moves).FirstOrDefault();
-        if (f == null)
-            return null;
+                    var f = EncounterMovesetGenerator.GeneratePKMs(pk, tr).FirstOrDefault();
+                    if (f == null)
+                        continue;
+                    var converted = PKMConverter.ConvertToType(f, destType, out _);
+                    if (converted == null)
+                        continue;
 
-        var result = EntityConverter.ConvertToType(f, destType, out _);
-        if (result == null)
-            return null;
+                    converted.CurrentLevel = 100;
+                    converted.Species = s;
+                    converted.AltForm = i;
 
-        result.Species = species;
-        result.Form = form;
-        result.CurrentLevel = 100;
+                    result.Add(converted);
+                }
+            }
 
-        result.Heal();
-        return result;
+            return result;
+        }
     }
 }

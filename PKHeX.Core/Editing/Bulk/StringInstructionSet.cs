@@ -1,38 +1,38 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
 
-namespace PKHeX.Core;
-
-/// <summary>
-/// Processes input of strings into a list of valid Filters and Instructions.
-/// </summary>
-public sealed class StringInstructionSet
+namespace PKHeX.Core
 {
-    public readonly IReadOnlyList<StringInstruction> Filters;
-    public readonly IReadOnlyList<StringInstruction> Instructions;
-
-    private const string SetSeparator = ";";
-
-    public StringInstructionSet(IReadOnlyList<StringInstruction> filters, IReadOnlyList<StringInstruction> instructions)
+    /// <summary>
+    /// Processes input of strings into a list of valid Filters and Instructions.
+    /// </summary>
+    public sealed class StringInstructionSet
     {
-        Filters = filters;
-        Instructions = instructions;
-    }
+        public readonly IReadOnlyList<StringInstruction> Filters;
+        public readonly IReadOnlyList<StringInstruction> Instructions;
 
-    public StringInstructionSet(ICollection<string> set)
-    {
-        Filters = StringInstruction.GetFilters(set).ToList();
-        Instructions = StringInstruction.GetInstructions(set).ToList();
-    }
+        private const string SetSeparator = ";";
 
-    public static IEnumerable<StringInstructionSet> GetBatchSets(IList<string> lines)
-    {
-        int start = 0;
-        while (start < lines.Count)
+        public StringInstructionSet(IReadOnlyList<StringInstruction> filters, IReadOnlyList<StringInstruction> instructions)
         {
-            var list = lines.Skip(start).TakeWhile(_ => !lines[start++].StartsWith(SetSeparator, StringComparison.Ordinal)).ToList();
-            yield return new StringInstructionSet(list);
+            Filters = filters;
+            Instructions = instructions;
+        }
+
+        public StringInstructionSet(ICollection<string> set)
+        {
+            Filters = StringInstruction.GetFilters(set).ToList();
+            Instructions = StringInstruction.GetInstructions(set).ToList();
+        }
+
+        public static IEnumerable<StringInstructionSet> GetBatchSets(IList<string> lines)
+        {
+            int start = 0;
+            while (start < lines.Count)
+            {
+                var list = lines.Skip(start).TakeWhile(_ => !lines[start++].StartsWith(SetSeparator)).ToList();
+                yield return new StringInstructionSet(list);
+            }
         }
     }
 }

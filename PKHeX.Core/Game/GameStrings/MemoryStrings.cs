@@ -1,69 +1,74 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace PKHeX.Core;
-
-/// <summary>
-/// Localizing Memory strings
-/// </summary>
-/// <remarks>
-/// <see cref="IMemoryOT"/> and <see cref="IMemoryHT"/> parameters build strings.
-/// </remarks>
-public sealed class MemoryStrings
+namespace PKHeX.Core
 {
-    private readonly GameStrings s;
-
-    public MemoryStrings(GameStrings strings)
+    public sealed class MemoryStrings
     {
-        s = strings;
-        memories = new Lazy<List<ComboItem>>(GetMemories);
-        none = new Lazy<List<ComboItem>>(() => Util.GetCBList(new[] {string.Empty}));
-        species = new Lazy<List<ComboItem>>(() => Util.GetCBList(s.specieslist));
-        item6 = new Lazy<List<ComboItem>>(() => GetItems(EntityContext.Gen6));
-        item8 = new Lazy<List<ComboItem>>(() => GetItems(EntityContext.Gen8));
-        genloc = new Lazy<List<ComboItem>>(() => Util.GetCBList(s.genloc));
-        moves = new Lazy<List<ComboItem>>(() => Util.GetCBList(s.movelist));
-        specific = new Lazy<List<ComboItem>>(() => Util.GetCBList(s.metXY_00000, Locations6.Met0));
+        private readonly GameStrings s;
+
+        public MemoryStrings(GameStrings strings, int format)
+        {
+            s = strings;
+            memories = new Lazy<List<ComboItem>>(GetMemories);
+            none = new Lazy<List<ComboItem>>(() => Util.GetCBList(new[] {string.Empty}));
+            species = new Lazy<List<ComboItem>>(() => Util.GetCBList(s.specieslist));
+            item = new Lazy<List<ComboItem>>(() => GetItems(format));
+            genloc = new Lazy<List<ComboItem>>(() => Util.GetCBList(s.genloc));
+            moves = new Lazy<List<ComboItem>>(() => Util.GetCBList(s.movelist)); // Hyperspace Fury
+            specific = new Lazy<List<ComboItem>>(() => Util.GetCBList(s.metXY_00000, Legal.Met_XY_0));
+        }
+
+        private List<ComboItem> GetItems(int format)
+        {
+            var permit = format < 8 ? Legal.HeldItem_AO : Legal.HeldItem_AO.Concat(Legal.HeldItems_SWSH).Distinct();
+            var asInt = permit.Select(z => (int) z).ToArray();
+            return Util.GetCBList(s.itemlist, asInt);
+        }
+
+        private readonly Lazy<List<ComboItem>> memories;
+        private readonly Lazy<List<ComboItem>> none, species, item, genloc, moves, specific;
+
+        public List<ComboItem> Memory => memories.Value;
+        public List<ComboItem> None => none.Value;
+        public List<ComboItem> Moves => moves.Value;
+        public List<ComboItem> Items => item.Value;
+        public List<ComboItem> GeneralLocations => genloc.Value;
+        public List<ComboItem> SpecificLocations => specific.Value;
+        public List<ComboItem> Species => species.Value;
+
+        private List<ComboItem> GetMemories()
+        {
+            // Memory Chooser
+            int memorycount = s.memories.Length - 38;
+            string[] mems = new string[memorycount];
+            int[] allowed = new int[memorycount];
+            for (int i = 0; i < memorycount; i++)
+            {
+                mems[i] = s.memories[38 + i];
+                allowed[i] = i + 1;
+            }
+            Array.Resize(ref allowed, allowed.Length - 1);
+            var memory_list1 = Util.GetCBList(new[] { mems[0] });
+            Util.AddCBWithOffset(memory_list1, mems, 0, allowed);
+            return memory_list1;
+        }
+
+        public string[] GetMemoryQualities() => s.memories.Slice(2, 7);
+        public string[] GetMemoryFeelings(int format) => format >= 8 ? s.memories.Slice(9, 25) : s.memories.Slice(10, 24); // empty line for 0 in gen8+
+
+        public List<ComboItem> GetArgumentStrings(MemoryArgType memIndex)
+        {
+            return memIndex switch
+            {
+                MemoryArgType.Species => Species,
+                MemoryArgType.GeneralLocation => GeneralLocations,
+                MemoryArgType.Item => Items,
+                MemoryArgType.Move => Moves,
+                MemoryArgType.SpecificLocation => SpecificLocations,
+                _ => None
+            };
+        }
     }
-
-    private List<ComboItem> GetItems(EntityContext context)
-    {
-        var permit = Memories.GetMemoryItemParams(context);
-        var asInt = permit.ToArray();
-        return Util.GetCBList(s.itemlist, asInt);
-    }
-
-    private readonly Lazy<List<ComboItem>> memories;
-    private readonly Lazy<List<ComboItem>> none, species, item6, item8, genloc, moves, specific;
-
-    public List<ComboItem> Memory => memories.Value;
-    public List<ComboItem> None => none.Value;
-    public List<ComboItem> Moves => moves.Value;
-    public List<ComboItem> Items6 => item6.Value;
-    public List<ComboItem> Items8 => item8.Value;
-    public List<ComboItem> GeneralLocations => genloc.Value;
-    public List<ComboItem> SpecificLocations => specific.Value;
-    public List<ComboItem> Species => species.Value;
-
-    private List<ComboItem> GetMemories()
-    {
-        var mems = s.memories.AsSpan(0);
-        var list = new List<ComboItem> {new(mems[0], 0)}; // none at top
-        Util.AddCBWithOffset(list, mems[1..], 1); // sorted the rest
-        return list;
-    }
-
-    public ReadOnlySpan<string> GetMemoryQualities() => s.intensity;
-    public ReadOnlySpan<string> GetMemoryFeelings(int memoryGen) => memoryGen >= 8 ? s.feeling8 : s.feeling6;
-
-    public List<ComboItem> GetArgumentStrings(MemoryArgType type, int memoryGen) => type switch
-    {
-        MemoryArgType.Species => Species,
-        MemoryArgType.GeneralLocation => GeneralLocations,
-        MemoryArgType.Item => memoryGen == 6 ? Items6 : Items8,
-        MemoryArgType.Move => Moves,
-        MemoryArgType.SpecificLocation => SpecificLocations,
-        _ => None,
-    };
 }

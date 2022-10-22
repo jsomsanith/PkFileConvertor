@@ -1,65 +1,53 @@
-﻿namespace PKHeX.Core;
-
-/// <summary>
-/// Specification for <see cref="PKM.IsShiny"/>, used for creating and validating.
-/// </summary>
-public enum Shiny : byte
+﻿namespace PKHeX.Core
 {
-    /// <summary> PID is purely random; can be shiny or not shiny. </summary>
-    Random = 0,
-
-    /// <summary> PID is randomly created and forced to be not shiny. </summary>
-    Never,
-
-    /// <summary> PID is randomly created and forced to be shiny. </summary>
-    Always,
-
-    /// <summary> PID is randomly created and forced to be shiny as Stars. </summary>
-    AlwaysStar,
-
-    /// <summary> PID is randomly created and forced to be shiny as Squares. </summary>
-    AlwaysSquare,
-
-    /// <summary> PID is fixed to a specified value. </summary>
-    FixedValue,
-}
-
-public static class ShinyExtensions
-{
-    public static bool IsValid(this Shiny s, PKM pk) => s switch
+    /// <summary>
+    /// Specification for <see cref="PKM.IsShiny"/>, used for creating and validating.
+    /// </summary>
+    public enum Shiny : byte
     {
-        Shiny.Always => pk.IsShiny,
-        Shiny.Never => !pk.IsShiny,
-        Shiny.AlwaysSquare => pk.ShinyXor == 0,
-        Shiny.AlwaysStar => pk.ShinyXor == 1,
-        _ => true,
-    };
+        /// <summary>
+        /// PID is fixed to a specified value.
+        /// </summary>
+        FixedValue = 0,
 
-    public static bool IsShiny(this Shiny s) => s switch
-    {
-        Shiny.Always => true,
-        Shiny.AlwaysSquare => true,
-        Shiny.AlwaysStar => true,
-        _ => false,
-    };
+        /// <summary>
+        /// PID is purely random; can be shiny or not shiny.
+        /// </summary>
+        Random = 1,
 
-    public static bool ShowSquareBeforeGen8 { get; set; }
+        /// <summary>
+        /// PID is randomly created and forced to be shiny.
+        /// </summary>
+        Always = 2,
 
-    public static Shiny GetType(PKM pk)
-    {
-        bool shiny = pk.IsShiny;
-        if (!shiny)
-            return Shiny.Never;
+        /// <summary>
+        /// PID is randomly created and forced to be not shiny.
+        /// </summary>
+        Never = 3,
 
-        if (IsSquareShinyExist(pk))
-            return Shiny.AlwaysSquare;
-        return Shiny.AlwaysStar;
+        /// <summary>
+        /// PID is randomly created and forced to be shiny as Stars.
+        /// </summary>
+        AlwaysStar = 5,
+
+        /// <summary>
+        /// PID is randomly created and forced to be shiny as Squares.
+        /// </summary>
+        AlwaysSquare = 6,
     }
 
-    public static bool IsSquareShinyExist(PKM pk)
+    public static partial class Extensions
     {
-        if (pk.Format < 8 && !ShowSquareBeforeGen8)
-            return false;
-        return pk.ShinyXor == 0 || pk.FatefulEncounter || pk.Version == (int)GameVersion.GO;
+        public static bool IsValid(this Shiny s, PKM pkm)
+        {
+            return s switch
+            {
+                Shiny.Always => pkm.IsShiny,
+                Shiny.Never => !pkm.IsShiny,
+                Shiny.AlwaysSquare => pkm.ShinyXor == 0,
+                Shiny.AlwaysStar => pkm.ShinyXor == 1,
+                _ => true
+            };
+        }
     }
 }

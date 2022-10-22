@@ -1,81 +1,79 @@
 using System;
 using System.Collections.Generic;
-using static System.Buffers.Binary.BinaryPrimitives;
 
-namespace PKHeX.Core;
-
-/// <summary>
-/// Generation 3 Evolution Branch Entries
-/// </summary>
-public static class EvolutionSet3
+namespace PKHeX.Core
 {
-    private static EvolutionMethod GetMethod(ReadOnlySpan<byte> data)
+    /// <summary>
+    /// Generation 3 Evolution Branch Entries
+    /// </summary>
+    public static class EvolutionSet3
     {
-        var method = data[0];
-        var arg =  ReadUInt16LittleEndian(data[2..]);
-        var species = SpeciesConverter.GetG4Species(ReadUInt16LittleEndian(data[4..]));
-        //2 bytes padding
-
-        switch (method)
+        private static EvolutionMethod GetMethod(byte[] data, int offset)
         {
-            case 1: /* Friendship*/
-            case 2: /* Friendship day*/
-            case 3: /* Friendship night*/
-                return new EvolutionMethod((EvolutionType)method, species, Argument: arg, LevelUp: 1);
-            case 5: /* Trade   */
-            case 6: /* Trade while holding */
-                return new EvolutionMethod((EvolutionType)method, species, Argument: arg);
-            case 4: /* Level Up */
-                return new EvolutionMethod(EvolutionType.LevelUp, species, Argument: arg, Level: (byte)arg, LevelUp: 1);
-            case 7: /* Use item */
-                return new EvolutionMethod((EvolutionType)(method + 1), species, Argument: arg);
-            case 15: /* Beauty evolution*/
-                return new EvolutionMethod((EvolutionType)(method + 1), species, Argument: arg, LevelUp: 1);
-            case 8: /* Tyrogue -> Hitmonchan */
-            case 9: /* Tyrogue -> Hitmonlee */
-            case 10: /* Tyrogue -> Hitmontop*/
-            case 11: /* Wurmple -> Silcoon evolution */
-            case 12: /* Wurmple -> Cascoon evolution */
-            case 13: /* Nincada -> Ninjask evolution */
-            case 14: /* Shedinja spawn in Nincada -> Ninjask evolution */
-                return new EvolutionMethod((EvolutionType)(method + 1), species, Argument: arg, Level: (byte)arg, LevelUp: 1);
+            int method = BitConverter.ToUInt16(data, offset + 0);
+            int arg =  BitConverter.ToUInt16(data, offset + 2);
+            int species = SpeciesConverter.GetG4Species(BitConverter.ToUInt16(data, offset + 4));
+            //2 bytes padding
 
-            default:
-                throw new ArgumentOutOfRangeException(nameof(method));
+            switch (method)
+            {
+                case 1: /* Friendship*/
+                case 2: /* Friendship day*/
+                case 3: /* Friendship night*/
+                case 5: /* Trade   */
+                case 6: /* Trade while holding */
+                    return new EvolutionMethod(method, species, argument: arg);
+                case 4: /* Level Up */
+                    return new EvolutionMethod(4, species, argument: arg, level:arg);
+                case 7: /* Use item */
+                case 15: /* Beauty evolution*/
+                    return new EvolutionMethod(method + 1, species, argument: arg);
+                case 8: /* Tyrogue -> Hitmonchan */
+                case 9: /* Tyrogue -> Hitmonlee */
+                case 10: /* Tyrogue -> Hitmontop*/
+                case 11: /* Wurmple -> Silcoon evolution */
+                case 12: /* Wurmple -> Cascoon evolution */
+                case 13: /* Nincada -> Ninjask evolution */
+                case 14: /* Shedinja spawn in Nincada -> Ninjask evolution */
+                    return new EvolutionMethod(method + 1, species, argument: arg, level: arg);
+
+                default:
+                    throw new ArgumentException(nameof(method));
+            }
         }
-    }
 
-    public static IReadOnlyList<EvolutionMethod[]> GetArray(ReadOnlySpan<byte> data)
-    {
-        var evos = new EvolutionMethod[Legal.MaxSpeciesID_3 + 1][];
-        evos[0] = Array.Empty<EvolutionMethod>();
-        for (ushort i = 1; i <= Legal.MaxSpeciesIndex_3; i++)
+        public static IReadOnlyList<EvolutionMethod[]> GetArray(byte[] data)
         {
-            int g4species = SpeciesConverter.GetG4Species(i);
-            if (g4species == 0)
-                continue;
-
-            const int maxCount = 5;
-            const int size = 8;
-
-            int offset = i * (maxCount * size);
-            int count = 0;
-            for (; count < maxCount; count++)
+            var evos = new EvolutionMethod[Legal.MaxSpeciesID_3 + 1][];
+            evos[0] = Array.Empty<EvolutionMethod>();
+            for (int i = 1; i <= Legal.MaxSpeciesIndex_3; i++)
             {
-                if (data[offset + (count * size)] == 0)
-                    break;
-            }
-            if (count == 0)
-            {
-                evos[g4species] = Array.Empty<EvolutionMethod>();
-                continue;
-            }
+                int g4species = SpeciesConverter.GetG4Species(i);
+                if (g4species == 0)
+                    continue;
 
-            var set = new EvolutionMethod[count];
-            for (int j = 0; j < set.Length; j++)
-                set[j] = GetMethod(data.Slice(offset + (j * size), size));
-            evos[g4species] = set;
+                const int maxCount = 5;
+                const int size = 8;
+
+                int offset = i * (maxCount * size);
+                int count = 0;
+                for (; count < maxCount; count++)
+                {
+                    if (data[offset + (count * size)] == 0)
+                        break;
+                }
+                if (count == 0)
+                {
+                    evos[g4species] = Array.Empty<EvolutionMethod>();
+                    continue;
+                }
+
+                var set = new EvolutionMethod[count];
+                for (int j = 0; j < set.Length; j++)
+                    set[j] = GetMethod(data, offset + (j * size));
+                evos[g4species] = set;
+            }
+            return evos;
         }
-        return evos;
     }
 }

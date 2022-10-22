@@ -1,97 +1,100 @@
-using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Diagnostics;
 
-namespace PKHeX.Core;
-
-/// <summary>
-/// Logic for rearranging pointers for Box Storage utility
-/// </summary>
-public static class SlotPointerUtil
+namespace PKHeX.Core
 {
-    private static bool WithinRange(int slot, int min, int max) => min <= slot && slot < max;
-
-    public static void UpdateSwap(int b1, int b2, int slotsPerBox, params IList<int>[] ptrset)
+    /// <summary>
+    /// Logic for rearranging pointers for Box Storage utility
+    /// </summary>
+    public static class SlotPointerUtil
     {
-        int diff = (b1 - b2) * slotsPerBox;
+        private static bool WithinRange(int slot, int min, int max) => min <= slot && slot < max;
 
-        int b1s = b1 * slotsPerBox;
-        int b1e = b1s + slotsPerBox;
-        int b12 = b1 > b2 ? -diff : diff;
-
-        int b2s = b2 * slotsPerBox;
-        int b2e = b2s + slotsPerBox;
-        int b21 = b2 > b1 ? -diff : diff;
-        foreach (var list in ptrset)
+        public static void UpdateSwap(int b1, int b2, int slotsPerBox, params IList<int>[] ptrset)
         {
-            for (int s = 0; s < list.Count; s++)
+            int diff = (b1 - b2) * slotsPerBox;
+
+            int b1s = b1 * slotsPerBox;
+            int b1e = b1s + slotsPerBox;
+            int b12 = b1 > b2 ? -diff : diff;
+
+            int b2s = b2 * slotsPerBox;
+            int b2e = b2s + slotsPerBox;
+            int b21 = b2 > b1 ? -diff : diff;
+            foreach (var list in ptrset)
             {
-                if (WithinRange(b1s, b1e, list[s]))
-                    list[s] += b12;
-                else if (WithinRange(b2s, b2e, list[s]))
-                    list[s] += b21;
+                for (int s = 0; s < list.Count; s++)
+                {
+                    if (WithinRange(b1s, b1e, list[s]))
+                        list[s] += b12;
+                    else if (WithinRange(b2s, b2e, list[s]))
+                        list[s] += b21;
+                }
             }
         }
-    }
 
-    public static void UpdateRepointFrom(IList<PKM> result, IList<PKM> bd, int start, params IList<int>[] slotPointers)
-    {
-        foreach (var p in slotPointers)
+        public static void UpdateRepointFrom(IList<PKM> result, IList<PKM> bd, int start, params IList<int>[] slotPointers)
         {
-            for (int i = 0; i < p.Count; i++)
+            foreach (var p in slotPointers)
             {
-                var index = p[i];
-                if ((uint)index >= bd.Count)
-                    continue;
-                var pk = bd[index];
-                var newIndex = result.IndexOf(pk);
-                if (newIndex < 0)
-                    continue;
+                for (int i = 0; i < p.Count; i++)
+                {
+                    var index = p[i];
+                    if ((uint)index >= bd.Count)
+                        continue;
+                    var pk = bd[index];
+                    var newIndex = result.IndexOf(pk);
+                    if (newIndex < 0)
+                        continue;
 
-                Debug.WriteLine($"Re-pointing {pk.Nickname} from {index} to {newIndex}");
-                Debug.WriteLine($"{result[newIndex]}");
-                p[i] = start + newIndex;
+                    Debug.WriteLine($"Repointing {pk.Nickname} from ({pk.Box}|{pk.Slot}) to {newIndex}");
+                    Debug.WriteLine($"{result[newIndex]}");
+                    p[i] = start + newIndex;
+                }
             }
         }
-    }
 
-    public static void UpdateRepointFrom(int newIndex, int oldIndex, Span<int> slotPointers)
-    {
-        for (int s = 0; s < slotPointers.Length; s++)
+        public static void UpdateRepointFrom(int newIndex, int oldIndex, params IList<int>[] slotPointers)
         {
-            if (slotPointers[s] != oldIndex)
-                continue;
-            slotPointers[s] = newIndex;
-            break;
-        }
-    }
-
-    public static void UpdateMove(int bMove, int cMove, int slotsPerBox, params IList<int>[] ptrset)
-    {
-        int bStart = bMove * slotsPerBox;
-        int cStart = cMove * slotsPerBox;
-        int bEnd = bStart + slotsPerBox;
-        int cEnd = cStart + slotsPerBox;
-        int cShift;
-        int bShift;
-        if (bMove < cMove) // shift chunk down, shift box up
-        {
-            cShift = -slotsPerBox;
-            bShift = (cStart - bStart);
-        }
-        else // shift box down, shift chunk up
-        {
-            cShift = slotsPerBox;
-            bShift = -(bStart - cStart);
-        }
-        foreach (var list in ptrset)
-        {
-            for (int s = 0; s < list.Count; s++)
+            foreach (var p in slotPointers)
             {
-                if (WithinRange(cStart, cEnd, list[s]))
-                    list[s] += cShift;
-                if (WithinRange(bStart, bEnd, list[s]))
-                    list[s] += bShift;
+                for (int s = 0; s < p.Count; s++)
+                {
+                    if (p[s] != oldIndex)
+                        continue;
+                    p[s] = newIndex;
+                    break;
+                }
+            }
+        }
+
+        public static void UpdateMove(int bMove, int cMove, int slotsPerBox, params IList<int>[] ptrset)
+        {
+            int bStart = bMove * slotsPerBox;
+            int cStart = cMove * slotsPerBox;
+            int bEnd = bStart + slotsPerBox;
+            int cEnd = cStart + slotsPerBox;
+            int cShift;
+            int bShift;
+            if (bMove < cMove) // shift chunk down, shift box up
+            {
+                cShift = -slotsPerBox;
+                bShift = (cStart - bStart);
+            }
+            else // shift box down, shift chunk up
+            {
+                cShift = slotsPerBox;
+                bShift = -(bStart - cStart);
+            }
+            foreach (var list in ptrset)
+            {
+                for (int s = 0; s < list.Count; s++)
+                {
+                    if (WithinRange(cStart, cEnd, list[s]))
+                        list[s] += cShift;
+                    if (WithinRange(bStart, bEnd, list[s]))
+                        list[s] += bShift;
+                }
             }
         }
     }

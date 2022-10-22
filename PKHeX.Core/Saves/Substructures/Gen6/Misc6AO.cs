@@ -1,39 +1,39 @@
 ﻿using System;
-using static System.Buffers.Binary.BinaryPrimitives;
 
-namespace PKHeX.Core;
-
-public interface IMisc6
+namespace PKHeX.Core
 {
-    uint Money { get; set; }
-}
-
-public sealed class Misc6AO : SaveBlock<SAV6>, IMisc6
-{
-    public Misc6AO(SAV6AO sav, int offset) : base(sav) => Offset = offset;
-    public Misc6AO(SAV6AODemo sav, int offset) : base(sav) => Offset = offset;
-
-    public uint Money
+    public interface IMisc6
     {
-        get => ReadUInt32LittleEndian(Data.AsSpan(Offset + 0x8));
-        set => WriteUInt32LittleEndian(Data.AsSpan(Offset + 0x8), value);
+        uint Money { get; set; }
     }
 
-    public int Badges
+    public sealed class Misc6AO : SaveBlock, IMisc6
     {
-        get => Data[Offset + 0xC];
-        set => Data[Offset + 0xC] = (byte)value;
-    }
+        public Misc6AO(SAV6AO sav, int offset) : base(sav) => Offset = offset;
+        public Misc6AO(SAV6AODemo sav, int offset) : base(sav) => Offset = offset;
 
-    public int BP
-    {
-        get => ReadUInt16LittleEndian(Data.AsSpan(Offset + 0x30));
-        set => WriteUInt16LittleEndian(Data.AsSpan(Offset + 0x30), (ushort)value);
-    }
+        public uint Money
+        {
+            get => BitConverter.ToUInt32(Data, Offset + 0x8);
+            set => BitConverter.GetBytes(value).CopyTo(Data, Offset + 0x8);
+        }
 
-    public int Vivillon
-    {
-        get => Data[Offset + 0x44];
-        set => Data[Offset + 0x44] = (byte)value;
+        public int Badges
+        {
+            get => Data[Offset + 0xC];
+            set => Data[Offset + 0xC] = (byte)value;
+        }
+
+        public int BP
+        {
+            get => BitConverter.ToUInt16(Data, Offset + 0x30);
+            set => BitConverter.GetBytes((ushort)value).CopyTo(Data, Offset + 0x30);
+        }
+
+        public int Vivillon
+        {
+            get => Data[Offset + 0x44];
+            set => Data[Offset + 0x44] = (byte)value;
+        }
     }
 }

@@ -1,179 +1,241 @@
-using System;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
 
-using static PKHeX.Core.GameVersion;
-
-namespace PKHeX.Core;
-
-/// <summary>
-/// Logic for providing suggested property values with respect to the input data.
-/// </summary>
-public static class EncounterSuggestion
+namespace PKHeX.Core
 {
     /// <summary>
-    /// Gets an object containing met data properties that might be legal.
+    /// Logic for providing suggested property values with respect to the input data.
     /// </summary>
-    public static EncounterSuggestionData? GetSuggestedMetInfo(PKM pk)
+    public static class EncounterSuggestion
     {
-        int loc = GetSuggestedTransferLocation(pk);
-
-        if (pk.WasEgg)
-            return GetSuggestedEncounterEgg(pk, loc);
-
-        var chain = EvolutionChain.GetValidPreEvolutions(pk, maxLevel: 100, skipChecks: true);
-        var w = EncounterSlotGenerator.GetCaptureLocation(pk, chain);
-        var s = EncounterStaticGenerator.GetStaticLocation(pk, chain);
-        if (w is null)
-            return s is null ? null : GetSuggestedEncounter(pk, s, loc);
-        if (s is null)
-            return GetSuggestedEncounter(pk, w, loc);
-
-        bool isDefinitelySlot = Array.Exists(chain, z => z.Species == w.Species && z.Form == w.Form);
-        bool isDefinitelyStatic = Array.Exists(chain, z => z.Species == s.Species && z.Form == s.Form);
-        IEncounterable obj = (isDefinitelySlot || !isDefinitelyStatic) ? w : s;
-        return GetSuggestedEncounter(pk, obj, loc);
-    }
-
-    private static EncounterSuggestionData GetSuggestedEncounterEgg(PKM pk, int loc = -1)
-    {
-        int lvl = GetSuggestedEncounterEggMetLevel(pk);
-        var met = loc != -1 ? loc : GetSuggestedEggMetLocation(pk);
-        return new EncounterSuggestionData(pk, met, (byte)lvl);
-    }
-
-    public static int GetSuggestedEncounterEggMetLevel(PKM pk)
-    {
-        if (!pk.IsNative && pk.Generation < 5)
-            return pk.CurrentLevel; // be generous with transfer conditions
-        if (pk.Format < 5) // and native
-            return pk.Format == 2 && pk.Met_Location != 0 ? 1 : 0;
-        return 1; // gen5+
-    }
-
-    public static int GetSuggestedEncounterEggLocationEgg(PKM pk, bool traded = false)
-    {
-        return GetSuggestedEncounterEggLocationEgg(pk.Generation, (GameVersion)pk.Version, traded);
-    }
-
-    public static int GetSuggestedEncounterEggLocationEgg(int generation, GameVersion version, bool traded = false) => generation switch
-    {
-        1 or 2 or 3 => 0,
-        4 => traded ? Locations.LinkTrade4 : Locations.Daycare4,
-        5 => traded ? Locations.LinkTrade5 : Locations.Daycare5,
-        8 when BDSP.Contains(version)=> traded ? Locations.LinkTrade6NPC : Locations.Daycare8b,
-        _ => traded ? Locations.LinkTrade6 : Locations.Daycare5,
-    };
-
-    private static EncounterSuggestionData GetSuggestedEncounter(PKM pk, IEncounterable enc, int loc = -1)
-    {
-        var met = loc != -1 ? loc : enc.Location;
-        return new EncounterSuggestionData(pk, enc, met);
-    }
-
-    /// <inheritdoc cref="EggStateLegality.GetEggHatchLocation"/>
-    public static int GetSuggestedEggMetLocation(PKM pk) => EggStateLegality.GetEggHatchLocation((GameVersion)pk.Version, pk.Format);
-
-    /// <summary>
-    /// Gets the correct Transfer Met location for the origin game.
-    /// </summary>
-    /// <param name="pk">Pokémon data to suggest for</param>
-    /// <remarks>
-    /// Returns -1 if the met location is not overriden with a transfer location
-    /// </remarks>
-    public static int GetSuggestedTransferLocation(PKM pk)
-    {
-        if (pk.Version == (int)GO)
-            return Locations.GO8;
-        if (pk.HasOriginalMetLocation)
-            return -1;
-        if (pk.VC1)
-            return Locations.Transfer1;
-        if (pk.VC2)
-            return Locations.Transfer2;
-        if (pk.Format == 4) // Pal Park
-            return Locations.Transfer3;
-        if (pk.Format >= 5) // Transporter
-            return Legal.GetTransfer45MetLocation(pk);
-        return -1;
-    }
-
-    public static int GetLowestLevel(PKM pk, byte startLevel)
-    {
-        if (startLevel >= 100)
-            startLevel = 100;
-
-        var table = EvolutionTree.GetEvolutionTree(pk.Context);
-        int count = 1;
-        for (byte i = 100; i >= startLevel; i--)
+        /// <summary>
+        /// Gets an object containing met data properties that might be legal.
+        /// </summary>
+        public static EncounterSuggestionData? GetSuggestedMetInfo(PKM pkm)
         {
-            var evos = table.GetValidPreEvolutions(pk, levelMax: i, skipChecks: true, levelMin: startLevel);
-            if (evos.Length < count) // lost an evolution, prior level was minimum current level
-                return GetMaxLevelMax(evos) + 1;
-            count = evos.Length;
-        }
-        return startLevel;
-    }
+            int loc = GetSuggestedTransferLocation(pkm);
 
-    private static int GetMaxLevelMax(EvoCriteria[] evos)
-    {
-        int max = 0;
-        foreach (var evo in evos)
-            max = Math.Max(evo.LevelMax, max);
-        return max;
-    }
+            if (pkm.WasEgg)
+                return GetSuggestedEncounterEgg(pkm, loc);
 
-    public static bool IterateMinimumCurrentLevel(PKM pk, bool isLegal, int max = 100)
-    {
-        var original = pk.CurrentLevel;
-        var originalEXP = pk.EXP;
-        if (isLegal)
-        {
-            if (original == 1)
-                return false;
-            max = original - 1;
+            var w = EncounterSlotGenerator.GetCaptureLocation(pkm);
+            if (w != null)
+                return GetSuggestedEncounterWild(pkm, w, loc);
+
+            var s = EncounterStaticGenerator.GetStaticLocation(pkm);
+            if (s != null)
+                return GetSuggestedEncounterStatic(pkm, s, loc);
+
+            return null;
         }
 
-        for (int i = max; i != 0; i--)
+        private static EncounterSuggestionData GetSuggestedEncounterEgg(PKM pkm, int loc = -1)
         {
-            pk.CurrentLevel = i;
-            var la = new LegalityAnalysis(pk);
-            var valid = la.Valid;
-            if (valid)
-                continue;
+            int lvl = GetSuggestedEncounterEggMetLevel(pkm);
+            var met = loc != -1 ? loc : GetSuggestedEggMetLocation(pkm);
+            return new EncounterSuggestionData(pkm, met, lvl);
+        }
 
-            var revert = Math.Min(100, i + 1);
-            if (revert == original)
+        public static int GetSuggestedEncounterEggMetLevel(PKM pkm)
+        {
+            if (!pkm.IsNative && pkm.GenNumber < 5)
+                return pkm.CurrentLevel; // be generous with transfer conditions
+            if (pkm.Format < 5) // and native
+                return pkm.Format == 2 && pkm.Met_Location != 0 ? 1 : 0;
+            return 1; // gen5+
+        }
+
+        public static int GetSuggestedEncounterEggLocationEgg(PKM pkm, bool traded = false)
+        {
+            switch (pkm.GenNumber)
             {
-                pk.EXP = originalEXP;
-                return false;
+                case 1:
+                case 2:
+                case 3:
+                    return 0;
+                case 4:
+                    return traded ? Locations.LinkTrade4 : Locations.Daycare4;
+                case 5:
+                    return traded ? Locations.LinkTrade5 : Locations.Daycare5;
+                default:
+                    return traded ? Locations.LinkTrade6 : Locations.Daycare5;
             }
-
-            pk.CurrentLevel = revert;
-            return true;
         }
-        return true; // 1
+
+        private static EncounterSuggestionData GetSuggestedEncounterWild(PKM pkm, EncounterArea area, int loc = -1)
+        {
+            var slots = area.Slots.OrderBy(s => s.LevelMin);
+            var first = slots.First();
+            var met = loc != -1 ? loc : area.Location;
+            return new EncounterSuggestionData(pkm, first, met);
+        }
+
+        private static EncounterSuggestionData GetSuggestedEncounterStatic(PKM pkm, EncounterStatic s, int loc = -1)
+        {
+            var met = loc != -1 ? loc : s.Location;
+            return new EncounterSuggestionData(pkm, s, met);
+        }
+
+        /// <summary>
+        /// Gets a valid Egg hatch location for the origin game.
+        /// </summary>
+        /// <param name="pkm">Pokémon data to suggest for</param>
+        public static int GetSuggestedEggMetLocation(PKM pkm)
+        {
+            // Return one of legal hatch locations for game
+            switch ((GameVersion)pkm.Version)
+            {
+                case GameVersion.R:
+                case GameVersion.S:
+                case GameVersion.E:
+                case GameVersion.FR:
+                case GameVersion.LG:
+                    return pkm.Format switch
+                    {
+                        3 => (pkm.FRLG ? Locations.HatchLocationFRLG : Locations.HatchLocationRSE),
+                        4 => Locations.Transfer3, // Pal Park
+                        _ => Locations.Transfer4,
+                    };
+
+                case GameVersion.D:
+                case GameVersion.P:
+                case GameVersion.Pt:
+                    return pkm.Format > 4 ? Locations.Transfer4 /* Transporter */ : Locations.HatchLocationDPPt;
+                case GameVersion.HG:
+                case GameVersion.SS:
+                    return pkm.Format > 4 ? Locations.Transfer4 /* Transporter */ : Locations.HatchLocationHGSS;
+
+                case GameVersion.B:
+                case GameVersion.W:
+                case GameVersion.B2:
+                case GameVersion.W2:
+                    return Locations.HatchLocation5;
+
+                case GameVersion.X:
+                case GameVersion.Y:
+                    return Locations.HatchLocation6XY;
+                case GameVersion.AS:
+                case GameVersion.OR:
+                    return Locations.HatchLocation6AO;
+
+                case GameVersion.SN:
+                case GameVersion.MN:
+                case GameVersion.US:
+                case GameVersion.UM:
+                    return Locations.HatchLocation7;
+
+                case GameVersion.SW:
+                case GameVersion.SH:
+                    return Locations.HatchLocation8;
+
+                case GameVersion.GD:
+                case GameVersion.SV:
+                case GameVersion.C:
+                case GameVersion.GSC:
+                case GameVersion.RBY:
+                    return pkm.Format > 2 ? Legal.Transfer2 : pkm.Met_Level == 0 ? 0 : Locations.HatchLocationC;
+            }
+            return -1;
+        }
+
+        /// <summary>
+        /// Gets the correct Transfer Met location for the origin game.
+        /// </summary>
+        /// <param name="pkm">Pokémon data to suggest for</param>
+        /// <remarks>
+        /// Returns -1 if the met location is not overriden with a transfer location
+        /// </remarks>
+        public static int GetSuggestedTransferLocation(PKM pkm)
+        {
+            if (pkm.HasOriginalMetLocation)
+                return -1;
+            if (pkm.Version == (int) GameVersion.GO)
+                return 30012;
+            if (pkm.VC1)
+                return Legal.Transfer1;
+            if (pkm.VC2)
+                return Legal.Transfer2;
+            if (pkm.Format == 4) // Pal Park
+                return Locations.Transfer3;
+
+            if (pkm.GenNumber >= 5)
+                return -1;
+
+            if (pkm.Format >= 5) // Transporter
+                return Legal.GetTransfer45MetLocation(pkm);
+            return -1;
+        }
+
+        public static int GetLowestLevel(PKM pkm, int startLevel)
+        {
+            if (startLevel == -1)
+                startLevel = 100;
+
+            var table = EvolutionTree.GetEvolutionTree(pkm, pkm.Format);
+            int count = 1;
+            for (int i = 100; i >= startLevel; i--)
+            {
+                var evos = table.GetValidPreEvolutions(pkm, maxLevel: i, minLevel: startLevel, skipChecks: true);
+                if (evos.Count < count) // lost an evolution, prior level was minimum current level
+                    return evos.Max(evo => evo.Level) + 1;
+                count = evos.Count;
+            }
+            return startLevel;
+        }
+
+
+        public static int GetSuggestedMetLevel(PKM pkm, int minLevel)
+        {
+            var clone = pkm.Clone();
+            int minMove = -1;
+            for (int i = clone.CurrentLevel; i >= minLevel; i--)
+            {
+                clone.Met_Level = i;
+                var la = new LegalityAnalysis(clone);
+                if (la.Valid)
+                    return i;
+                if (la.Info.Moves.All(z => z.Valid))
+                    minMove = i;
+            }
+            return Math.Max(minMove, minLevel);
+        }
     }
 
-    /// <summary>
-    /// Gets the suggested <see cref="PKM.Met_Level"/> based on a baseline <see cref="minLevel"/> and the <see cref="pk"/>'s current moves.
-    /// </summary>
-    /// <param name="pk">Entity to calculate for</param>
-    /// <param name="minLevel">Encounter minimum level to calculate for</param>
-    /// <returns>Minimum level the <see cref="pk"/> can have for its <see cref="PKM.Met_Level"/></returns>
-    /// <remarks>Brute-forces the value by cloning the <see cref="pk"/> and adjusting the <see cref="PKM.Met_Level"/> and returning the lowest valid value.</remarks>
-    public static int GetSuggestedMetLevel(PKM pk, int minLevel)
+    public sealed class EncounterSuggestionData : IRelearn
     {
-        var clone = pk.Clone();
-        int minMove = -1;
-        for (int i = clone.CurrentLevel; i >= minLevel; i--)
+        private readonly IEncounterable? Encounter;
+
+        public IReadOnlyList<int> Relearn => Encounter is IRelearn r ? r.Relearn : Array.Empty<int>();
+
+        public EncounterSuggestionData(PKM pkm, IEncounterable enc, int met)
         {
-            clone.Met_Level = i;
-            var la = new LegalityAnalysis(clone);
-            if (la.Valid)
-                return i;
-            var moves = la.Info.Moves;
-            if (MoveResult.AllValid(moves))
-                minMove = i;
+            Encounter = enc;
+            Species = pkm.Species;
+            Form = pkm.AltForm;
+            Location = met;
+
+            LevelMin = enc.LevelMin;
+            LevelMax = enc.LevelMax;
         }
-        return Math.Max(minMove, minLevel);
+
+        public EncounterSuggestionData(PKM pkm, int met, int lvl)
+        {
+            Species = pkm.Species;
+            Form = pkm.AltForm;
+            Location = met;
+
+            LevelMin = lvl;
+            LevelMax = lvl;
+        }
+
+        public int Species { get; }
+        public int Form { get; }
+        public int Location { get; }
+
+        public int LevelMin { get; }
+        public int LevelMax { get; }
+
+        public int GetSuggestedMetLevel(PKM pkm) => EncounterSuggestion.GetSuggestedMetLevel(pkm, LevelMin);
     }
 }

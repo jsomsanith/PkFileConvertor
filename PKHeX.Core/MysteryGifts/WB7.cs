@@ -1,601 +1,519 @@
-using System;
-using static System.Buffers.Binary. BinaryPrimitives;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
 
-namespace PKHeX.Core;
-
-/// <summary>
-/// Generation 7 Mystery Gift Template File
-/// </summary>
-public sealed class WB7 : DataMysteryGift, ILangNick, IAwakened, INature, ILangNicknamedTemplate
+namespace PKHeX.Core
 {
-    public const int Size = 0x108;
-    public const int SizeFull = 0x310;
-    private const int CardStart = SizeFull - Size;
-
-    public override int Generation => 7;
-    public override EntityContext Context => EntityContext.Gen7b;
-
-    public WB7() : this(new byte[SizeFull]) { }
-    public WB7(byte[] data) : base(data) { }
-
-    public override GameVersion Version { get => GameVersion.GG; set { } }
-
-    public byte RestrictVersion { get => Data[0]; set => Data[0] = value; }
-
-    public bool CanBeReceivedByVersion(int v)
-    {
-        if (v is not ((int)GameVersion.GP or (int)GameVersion.GE))
-            return false;
-        if (RestrictVersion == 0)
-            return true; // no data
-        var bitIndex = v - (int)GameVersion.GP;
-        var bit = 1 << bitIndex;
-        return (RestrictVersion & bit) != 0;
-    }
-
-    // General Card Properties
-    public override int CardID
-    {
-        get => ReadUInt16LittleEndian(Data.AsSpan(CardStart + 0));
-        set => WriteUInt16LittleEndian(Data.AsSpan(CardStart + 0), (ushort)value);
-    }
-
-    public override string CardTitle
-    {
-        // Max len 36 char, followed by null terminator
-        get => StringConverter8.GetString(Data.AsSpan(CardStart + 2, 0x4A));
-        set => StringConverter8.SetString(Data.AsSpan(CardStart + 2, 0x4A), value.AsSpan(), 36, StringConverterOption.ClearZero);
-    }
-
-    private uint RawDate
-    {
-        get => ReadUInt32LittleEndian(Data.AsSpan(CardStart + 0x4C));
-        set => WriteUInt32LittleEndian(Data.AsSpan(CardStart + 0x4C), value);
-    }
-
-    private uint Year
-    {
-        get => (RawDate / 10000) + 2000;
-        set => RawDate = SetDate(value, Month, Day);
-    }
-
-    private uint Month
-    {
-        get => RawDate % 10000 / 100;
-        set => RawDate = SetDate(Year, value, Day);
-    }
-
-    private uint Day
-    {
-        get => RawDate % 100;
-        set => RawDate = SetDate(Year, Month, value);
-    }
-
-    private static uint SetDate(uint year, uint month, uint day) => (Math.Max(0, year - 2000) * 10000) + (month * 100) + day;
-
     /// <summary>
-    /// Gets or sets the date of the card.
+    /// Generation 7 Mystery Gift Template File
     /// </summary>
-    public DateTime? Date
+    public sealed class WB7 : DataMysteryGift, ILangNick, IAwakened, INature
     {
-        get
-        {
-            // Check to see if date is valid
-            if (!DateUtil.IsDateValid(Year, Month, Day))
-                return null;
+        public const int Size = 0x108;
+        public const int SizeFull = 0x310;
+        private const int CardStart = SizeFull - Size;
 
-            return new DateTime((int)Year, (int)Month, (int)Day);
-        }
-        set
+        public override int Format => 7;
+
+        public WB7() : this(new byte[SizeFull]) { }
+        public WB7(byte[] data) : base(data) { }
+
+        public byte RestrictVersion { get => Data[0]; set => Data[0] = value; }
+
+        public bool CanBeReceivedByVersion(int v)
         {
-            if (value.HasValue)
+            if (v < (int)GameVersion.GP || v > (int)GameVersion.GE)
+                return false;
+            if (RestrictVersion == 0)
+                return true; // no data
+            var bitIndex = v - (int)GameVersion.GP;
+            var bit = 1 << bitIndex;
+            return (RestrictVersion & bit) != 0;
+        }
+
+        // General Card Properties
+        public override int CardID
+        {
+            get => BitConverter.ToUInt16(Data, CardStart + 0);
+            set => BitConverter.GetBytes((ushort)value).CopyTo(Data, CardStart + 0);
+        }
+
+        public override string CardTitle
+        {
+            // Max len 36 char, followed by null terminator
+            get => Util.TrimFromZero(Encoding.Unicode.GetString(Data, CardStart + 2, 72));
+            set => Encoding.Unicode.GetBytes(value.PadRight(36, '\0')).CopyTo(Data, CardStart + 2);
+        }
+
+        private uint RawDate
+        {
+            get => BitConverter.ToUInt32(Data, CardStart + 0x4C);
+            set => BitConverter.GetBytes(value).CopyTo(Data, CardStart + 0x4C);
+        }
+
+        private uint Year
+        {
+            get => (RawDate / 10000) + 2000;
+            set => RawDate = SetDate(value, Month, Day);
+        }
+
+        private uint Month
+        {
+            get => RawDate % 10000 / 100;
+            set => RawDate = SetDate(Year, value, Day);
+        }
+
+        private uint Day
+        {
+            get => RawDate % 100;
+            set => RawDate = SetDate(Year, Month, value);
+        }
+
+        private static uint SetDate(uint year, uint month, uint day) => (Math.Max(0, year - 2000) * 10000) + (month * 100) + day;
+
+        /// <summary>
+        /// Gets or sets the date of the card.
+        /// </summary>
+        public DateTime? Date
+        {
+            get
             {
-                // Only update the properties if a value is provided.
-                Year = (ushort)value.Value.Year;
-                Month = (byte)value.Value.Month;
-                Day = (byte)value.Value.Day;
+                // Check to see if date is valid
+                if (!Util.IsDateValid(Year, Month, Day))
+                    return null;
+
+                return new DateTime((int)Year, (int)Month, (int)Day);
+            }
+            set
+            {
+                if (value.HasValue)
+                {
+                    // Only update the properties if a value is provided.
+                    Year = (ushort)value.Value.Year;
+                    Month = (byte)value.Value.Month;
+                    Day = (byte)value.Value.Day;
+                }
+                else
+                {
+                    // Clear the Met Date.
+                    // If code tries to access MetDate again, null will be returned.
+                    Year = 0;
+                    Month = 0;
+                    Day = 0;
+                }
+            }
+        }
+
+        public int CardLocation { get => Data[CardStart + 0x50]; set => Data[CardStart + 0x50] = (byte)value; }
+
+        public int CardType { get => Data[CardStart + 0x51]; set => Data[CardStart + 0x51] = (byte)value; }
+        public byte CardFlags { get => Data[CardStart + 0x52]; set => Data[CardStart + 0x52] = value; }
+
+        public bool GiftRepeatable { get => (CardFlags & 1) == 0; set => CardFlags = (byte)((CardFlags & ~1) | (value ? 0 : 1)); }
+        public override bool GiftUsed { get => (CardFlags & 2) == 2; set => CardFlags = (byte)((CardFlags & ~2) | (value ? 2 : 0)); }
+        public bool GiftOncePerDay { get => (CardFlags & 4) == 4; set => CardFlags = (byte)((CardFlags & ~4) | (value ? 4 : 0)); }
+
+        public bool MultiObtain { get => Data[CardStart + 0x53] == 1; set => Data[CardStart + 0x53] = (byte)(value ? 1 : 0); }
+
+        // Item Properties
+        public override bool IsItem { get => CardType == 1; set { if (value) CardType = 1; } }
+        public override int ItemID { get => BitConverter.ToUInt16(Data, CardStart + 0x68); set => BitConverter.GetBytes((ushort)value).CopyTo(Data, CardStart + 0x68); }
+        public int GetItem(int index) => BitConverter.ToUInt16(Data, CardStart + 0x68 + (0x4 * index));
+        public void SetItem(int index, ushort item) => BitConverter.GetBytes(item).CopyTo(Data, CardStart + 0x68 + (4 * index));
+        public int GetQuantity(int index) => BitConverter.ToUInt16(Data, CardStart + 0x6A + (0x4 * index));
+        public void SetQuantity(int index, ushort quantity) => BitConverter.GetBytes(quantity).CopyTo(Data, CardStart + 0x6A + (4 * index));
+
+        public override int Quantity
+        {
+            get => BitConverter.ToUInt16(Data, CardStart + 0x6A);
+            set => BitConverter.GetBytes((ushort)value).CopyTo(Data, CardStart + 0x6A);
+        }
+
+        // Pokémon Properties
+        public override bool IsPokémon { get => CardType == 0; set { if (value) CardType = 0; } }
+        public override bool IsShiny => PIDType == Shiny.Always;
+
+        public override int TID
+        {
+            get => BitConverter.ToUInt16(Data, CardStart + 0x68);
+            set => BitConverter.GetBytes((ushort)value).CopyTo(Data, CardStart + 0x68);
+        }
+
+        public override int SID {
+            get => BitConverter.ToUInt16(Data, CardStart + 0x6A);
+            set => BitConverter.GetBytes((ushort)value).CopyTo(Data, CardStart + 0x6A);
+        }
+
+        public int OriginGame
+        {
+            get => BitConverter.ToInt32(Data, CardStart + 0x6C);
+            set => BitConverter.GetBytes(value).CopyTo(Data, CardStart + 0x6C);
+        }
+
+        public uint EncryptionConstant {
+            get => BitConverter.ToUInt32(Data, CardStart + 0x70);
+            set => BitConverter.GetBytes(value).CopyTo(Data, CardStart + 0x70);
+        }
+
+        public override int Ball
+        {
+            get => Data[CardStart + 0x76];
+            set => Data[CardStart + 0x76] = (byte)value; }
+
+        public override int HeldItem // no references
+        {
+            get => BitConverter.ToUInt16(Data, CardStart + 0x78);
+            set => BitConverter.GetBytes((ushort)value).CopyTo(Data, CardStart + 0x78);
+        }
+
+        public int Move1 { get => BitConverter.ToUInt16(Data, CardStart + 0x7A); set => BitConverter.GetBytes((ushort)value).CopyTo(Data, CardStart + 0x7A); }
+        public int Move2 { get => BitConverter.ToUInt16(Data, CardStart + 0x7C); set => BitConverter.GetBytes((ushort)value).CopyTo(Data, CardStart + 0x7C); }
+        public int Move3 { get => BitConverter.ToUInt16(Data, CardStart + 0x7E); set => BitConverter.GetBytes((ushort)value).CopyTo(Data, CardStart + 0x7E); }
+        public int Move4 { get => BitConverter.ToUInt16(Data, CardStart + 0x80); set => BitConverter.GetBytes((ushort)value).CopyTo(Data, CardStart + 0x80); }
+        public override int Species { get => BitConverter.ToUInt16(Data, CardStart + 0x82); set => BitConverter.GetBytes((ushort)value).CopyTo(Data, CardStart + 0x82); }
+        public override int Form { get => Data[CardStart + 0x84]; set => Data[CardStart + 0x84] = (byte)value; }
+
+        // public int Language { get => Data[CardStart + 0x85]; set => Data[CardStart + 0x85] = (byte)value; }
+
+        // public string Nickname
+        // {
+        //     get => Util.TrimFromZero(Encoding.Unicode.GetString(Data, CardStart + 0x86, 0x1A));
+        //     set => Encoding.Unicode.GetBytes(value.PadRight(12 + 1, '\0')).CopyTo(Data, CardStart + 0x86);
+        // }
+
+        public int Nature { get => (sbyte)Data[CardStart + 0xA0]; set => Data[CardStart + 0xA0] = (byte)value; }
+        public override int Gender { get => Data[CardStart + 0xA1]; set => Data[CardStart + 0xA1] = (byte)value; }
+        public override int AbilityType { get => Data[CardStart + 0xA2]; set => Data[CardStart + 0xA2] = (byte)value; } // no references
+        public Shiny PIDType { get => (Shiny)Data[CardStart + 0xA3]; set => Data[CardStart + 0xA3] = (byte)value; }
+        public override int EggLocation { get => BitConverter.ToUInt16(Data, CardStart + 0xA4); set => BitConverter.GetBytes((ushort)value).CopyTo(Data, CardStart + 0xA4); }
+        public int MetLocation  { get => BitConverter.ToUInt16(Data, CardStart + 0xA6); set => BitConverter.GetBytes((ushort)value).CopyTo(Data, CardStart + 0xA6); }
+        public int MetLevel { get => Data[CardStart + 0xA8]; set => Data[CardStart + 0xA8] = (byte)value; }
+
+        public int IV_HP { get => Data[CardStart + 0xAF]; set => Data[CardStart + 0xAF] = (byte)value; }
+        public int IV_ATK { get => Data[CardStart + 0xB0]; set => Data[CardStart + 0xB0] = (byte)value; }
+        public int IV_DEF { get => Data[CardStart + 0xB1]; set => Data[CardStart + 0xB1] = (byte)value; }
+        public int IV_SPE { get => Data[CardStart + 0xB2]; set => Data[CardStart + 0xB2] = (byte)value; }
+        public int IV_SPA { get => Data[CardStart + 0xB3]; set => Data[CardStart + 0xB3] = (byte)value; }
+        public int IV_SPD { get => Data[CardStart + 0xB4]; set => Data[CardStart + 0xB4] = (byte)value; }
+
+        public int OTGender { get => Data[CardStart + 0xB5]; set => Data[CardStart + 0xB5] = (byte)value; }
+
+        // public override string OT_Name
+        // {
+        //     get => Util.TrimFromZero(Encoding.Unicode.GetString(Data, CardStart + 0xB6, 0x1A));
+        //     set => Encoding.Unicode.GetBytes(value.PadRight(value.Length + 1, '\0')).CopyTo(Data, CardStart + 0xB6);
+        // }
+
+        public override int Level { get => Data[CardStart + 0xD0]; set => Data[CardStart + 0xD0] = (byte)value; }
+        public override bool IsEgg { get => Data[CardStart + 0xD1] == 1; set => Data[CardStart + 0xD1] = (byte)(value ? 1 : 0); }
+        public ushort AdditionalItem { get => BitConverter.ToUInt16(Data, CardStart + 0xD2); set => BitConverter.GetBytes(value).CopyTo(Data, CardStart + 0xD2); }
+
+        public uint PID { get => BitConverter.ToUInt32(Data, 0xD4); set => BitConverter.GetBytes(value).CopyTo(Data, 0xD4); }
+        public int RelearnMove1 { get => BitConverter.ToUInt16(Data, CardStart + 0xD8); set => BitConverter.GetBytes((ushort)value).CopyTo(Data, CardStart + 0xD8); }
+        public int RelearnMove2 { get => BitConverter.ToUInt16(Data, CardStart + 0xDA); set => BitConverter.GetBytes((ushort)value).CopyTo(Data, CardStart + 0xDA); }
+        public int RelearnMove3 { get => BitConverter.ToUInt16(Data, CardStart + 0xDC); set => BitConverter.GetBytes((ushort)value).CopyTo(Data, CardStart + 0xDC); }
+        public int RelearnMove4 { get => BitConverter.ToUInt16(Data, CardStart + 0xDE); set => BitConverter.GetBytes((ushort)value).CopyTo(Data, CardStart + 0xDE); }
+
+        public int AV_HP {  get => Data[CardStart + 0xE6]; set => Data[CardStart + 0xE6] = (byte)value; }
+        public int AV_ATK { get => Data[CardStart + 0xE7]; set => Data[CardStart + 0xE7] = (byte)value; }
+        public int AV_DEF { get => Data[CardStart + 0xE8]; set => Data[CardStart + 0xE8] = (byte)value; }
+        public int AV_SPE { get => Data[CardStart + 0xE9]; set => Data[CardStart + 0xE9] = (byte)value; }
+        public int AV_SPA { get => Data[CardStart + 0xEA]; set => Data[CardStart + 0xEA] = (byte)value; }
+        public int AV_SPD { get => Data[CardStart + 0xEB]; set => Data[CardStart + 0xEB] = (byte)value; }
+
+        // Meta Accessible Properties
+        public override int[] IVs
+        {
+            get => new[] { IV_HP, IV_ATK, IV_DEF, IV_SPE, IV_SPA, IV_SPD };
+            set
+            {
+                if (value.Length != 6) return;
+                IV_HP = value[0]; IV_ATK = value[1]; IV_DEF = value[2];
+                IV_SPE = value[3]; IV_SPA = value[4]; IV_SPD = value[5];
+            }
+        }
+
+        public bool GetIsNicknamed(int language) => Data[GetNicknameOffset(language)] != 0;
+
+        private static int GetLanguageIndex(int language)
+        {
+            var lang = (LanguageID) language;
+            if (lang < LanguageID.Japanese || lang == LanguageID.UNUSED_6 || lang > LanguageID.ChineseT)
+                return (int) LanguageID.English; // fallback
+            return lang < LanguageID.UNUSED_6 ? language - 1 : language - 2;
+        }
+
+        public override int Location { get => MetLocation; set => MetLocation = (ushort)value; }
+
+        public override IReadOnlyList<int> Moves
+        {
+            get => new[] { Move1, Move2, Move3, Move4 };
+            set
+            {
+                if (value.Count > 0) Move1 = value[0];
+                if (value.Count > 1) Move2 = value[1];
+                if (value.Count > 2) Move3 = value[2];
+                if (value.Count > 3) Move4 = value[3];
+            }
+        }
+
+        public override IReadOnlyList<int> Relearn
+        {
+            get => new[] { RelearnMove1, RelearnMove2, RelearnMove3, RelearnMove4 };
+            set
+            {
+                if (value.Count > 0) RelearnMove1 = value[0];
+                if (value.Count > 1) RelearnMove2 = value[1];
+                if (value.Count > 2) RelearnMove3 = value[2];
+                if (value.Count > 3) RelearnMove4 = value[3];
+            }
+        }
+
+        public override string OT_Name { get; set; } = string.Empty;
+        public string Nickname => string.Empty;
+        public bool IsNicknamed => false;
+        public int Language => 2;
+
+        public string GetNickname(int language) => Util.TrimFromZero(Encoding.Unicode.GetString(Data, GetNicknameOffset(language), 0x1A));
+        public void SetNickname(int language, string value) => Encoding.Unicode.GetBytes(value.PadRight(0x1A / 2, '\0')).CopyTo(Data, GetNicknameOffset(language));
+
+        public string GetOT(int language) => Util.TrimFromZero(Encoding.Unicode.GetString(Data, GetOTOffset(language), 0x1A));
+        public void SetOT(int language, string value) => Encoding.Unicode.GetBytes(value.PadRight(0x1A / 2, '\0')).CopyTo(Data, GetOTOffset(language));
+
+        private int GetNicknameOffset(int language)
+        {
+            int index = GetLanguageIndex(language);
+            return 0x04 + (index * 0x1A);
+        }
+
+        private int GetOTOffset(int language)
+        {
+            int index = GetLanguageIndex(language);
+            return 0xEE + (index * 0x1A);
+        }
+
+        public override PKM ConvertToPKM(ITrainerInfo SAV, EncounterCriteria criteria)
+        {
+            if (!IsPokémon)
+                throw new ArgumentException(nameof(IsPokémon));
+
+            var rnd = Util.Rand;
+
+            int currentLevel = Level > 0 ? Level : rnd.Next(1, 101);
+            int metLevel = MetLevel > 0 ? MetLevel : currentLevel;
+            var pi = PersonalTable.GG.GetFormeEntry(Species, Form);
+            var OT = GetOT(SAV.Language);
+
+            var pk = new PB7
+            {
+                Species = Species,
+                HeldItem = HeldItem,
+                TID = TID,
+                SID = SID,
+                Met_Level = metLevel,
+                AltForm = Form,
+                EncryptionConstant = EncryptionConstant != 0 ? EncryptionConstant : Util.Rand32(),
+                Version = OriginGame != 0 ? OriginGame : SAV.Game,
+                Language = SAV.Language,
+                Ball = Ball,
+                Country = SAV.Country,
+                Region = SAV.SubRegion,
+                ConsoleRegion = SAV.ConsoleRegion,
+                Move1 = Move1,
+                Move2 = Move2,
+                Move3 = Move3,
+                Move4 = Move4,
+                RelearnMove1 = RelearnMove1,
+                RelearnMove2 = RelearnMove2,
+                RelearnMove3 = RelearnMove3,
+                RelearnMove4 = RelearnMove4,
+                Met_Location = MetLocation,
+                Egg_Location = EggLocation,
+                AV_HP = AV_HP,
+                AV_ATK = AV_ATK,
+                AV_DEF = AV_DEF,
+                AV_SPE = AV_SPE,
+                AV_SPA = AV_SPA,
+                AV_SPD = AV_SPD,
+
+                OT_Name = OT.Length > 0 ? OT : SAV.OT,
+                OT_Gender = OTGender != 3 ? OTGender % 2 : SAV.Gender,
+                HT_Name = OT_Name.Length > 0 ? SAV.OT : string.Empty,
+                HT_Gender = OT_Name.Length > 0 ? SAV.Gender : 0,
+                CurrentHandler = OT_Name.Length > 0 ? 1 : 0,
+
+                EXP = Experience.GetEXP(currentLevel, pi.EXPGrowth),
+
+                OT_Friendship = pi.BaseFriendship,
+                FatefulEncounter = true,
+            };
+            pk.SetMaximumPPCurrent();
+
+            if ((SAV.Generation > Format && OriginGame == 0) || !CanBeReceivedByVersion(pk.Version))
+            {
+                // give random valid game
+                do { pk.Version = (int)GameVersion.GP + rnd.Next(2); }
+                while (!CanBeReceivedByVersion(pk.Version));
+            }
+
+            if (OTGender == 3)
+            {
+                pk.TID = SAV.TID;
+                pk.SID = SAV.SID;
+            }
+
+            pk.MetDate = Date ?? DateTime.Now;
+            pk.IsNicknamed = GetIsNicknamed(pk.Language);
+            pk.Nickname = pk.IsNicknamed ? GetNickname(pk.Language) : SpeciesName.GetSpeciesNameGeneration(Species, pk.Language, Format);
+
+            SetPINGA(pk, criteria);
+
+            if (IsEgg)
+                SetEggMetData(pk);
+            pk.CurrentFriendship = pk.IsEgg ? pi.HatchCycles : pi.BaseFriendship;
+
+            pk.HeightScalar = rnd.Next(0x100);
+            pk.WeightScalar = rnd.Next(0x100);
+            pk.ResetCalculatedValues(); // cp & dimensions
+
+            pk.RefreshChecksum();
+            return pk;
+        }
+
+        private void SetEggMetData(PKM pk)
+        {
+            pk.IsEgg = true;
+            pk.EggMetDate = Date;
+            pk.Nickname = SpeciesName.GetSpeciesNameGeneration(0, pk.Language, Format);
+            pk.IsNicknamed = true;
+        }
+
+        private void SetPINGA(PKM pk, EncounterCriteria criteria)
+        {
+            var pi = PersonalTable.GG.GetFormeEntry(Species, Form);
+            pk.Nature = (int)criteria.GetNature((Nature)Nature);
+            pk.Gender = criteria.GetGender(Gender, pi);
+            var av = GetAbilityIndex(criteria, pi);
+            pk.RefreshAbility(av);
+            SetPID(pk);
+            SetIVs(pk);
+        }
+
+        private int GetAbilityIndex(EncounterCriteria criteria, PersonalInfo pi)
+        {
+            switch (AbilityType)
+            {
+                case 00: // 0 - 0
+                case 01: // 1 - 1
+                case 02: // 2 - H
+                    return AbilityType;
+                case 03: // 0/1
+                case 04: // 0/1/H
+                    return criteria.GetAbility(AbilityType, pi); // 3 or 2
+                default:
+                    throw new ArgumentException(nameof(AbilityType));
+            }
+        }
+
+        private void SetPID(PKM pk)
+        {
+            switch (PIDType)
+            {
+                case Shiny.FixedValue: // Specified
+                    pk.PID = PID;
+                    break;
+                case Shiny.Random: // Random
+                    pk.PID = Util.Rand32();
+                    break;
+                case Shiny.Always: // Random Shiny
+                    pk.PID = Util.Rand32();
+                    pk.PID = (uint)(((pk.TID ^ pk.SID ^ (pk.PID & 0xFFFF)) << 16) | (pk.PID & 0xFFFF));
+                    break;
+                case Shiny.Never: // Random Nonshiny
+                    pk.PID = Util.Rand32();
+                    if (pk.IsShiny) pk.PID ^= 0x10000000;
+                    break;
+            }
+        }
+
+        private void SetIVs(PKM pk)
+        {
+            int[] finalIVs = new int[6];
+            var ivflag = Array.Find(IVs, iv => (byte)(iv - 0xFC) < 3);
+            var rng = Util.Rand;
+            if (ivflag == 0) // Random IVs
+            {
+                for (int i = 0; i < 6; i++)
+                    finalIVs[i] = IVs[i] > 31 ? rng.Next(32) : IVs[i];
+            }
+            else // 1/2/3 perfect IVs
+            {
+                int IVCount = ivflag - 0xFB;
+                do { finalIVs[rng.Next(6)] = 31; }
+                while (finalIVs.Count(iv => iv == 31) < IVCount);
+                for (int i = 0; i < 6; i++)
+                    finalIVs[i] = finalIVs[i] == 31 ? 31 : rng.Next(32);
+            }
+            pk.IVs = finalIVs;
+        }
+
+        protected override bool IsMatchExact(PKM pkm)
+        {
+            if (pkm.Egg_Location == 0) // Not Egg
+            {
+                if (OTGender != 3)
+                {
+                    if (SID != pkm.SID) return false;
+                    if (TID != pkm.TID) return false;
+                    if (OTGender != pkm.OT_Gender) return false;
+                }
+                var OT = GetOT(pkm.Language);
+                if (!string.IsNullOrEmpty(OT) && OT != pkm.OT_Name) return false;
+                if (OriginGame != 0 && OriginGame != pkm.Version) return false;
+                if (EncryptionConstant != 0 && EncryptionConstant != pkm.EncryptionConstant) return false;
+            }
+
+            if (Form != pkm.AltForm && !Legal.IsFormChangeable(pkm, Species))
+                return false;
+
+            if (IsEgg)
+            {
+                if (EggLocation != pkm.Egg_Location) // traded
+                {
+                    if (pkm.Egg_Location != Locations.LinkTrade6)
+                        return false;
+                }
+                else if (PIDType == 0 && pkm.IsShiny)
+                {
+                    return false; // can't be traded away for unshiny
+                }
+
+                if (pkm.IsEgg && !pkm.IsNative)
+                    return false;
             }
             else
             {
-                // Clear the Met Date.
-                // If code tries to access MetDate again, null will be returned.
-                Year = 0;
-                Month = 0;
-                Day = 0;
+                if (!PIDType.IsValid(pkm)) return false;
+                if (EggLocation != pkm.Egg_Location) return false;
+                if (MetLocation != pkm.Met_Location) return false;
             }
-        }
-    }
 
-    public int CardLocation { get => Data[CardStart + 0x50]; set => Data[CardStart + 0x50] = (byte)value; }
+            if (MetLevel != pkm.Met_Level) return false;
+            if (Ball != pkm.Ball) return false;
+            if (OTGender < 3 && OTGender != pkm.OT_Gender) return false;
+            if (Nature != -1 && pkm.Nature != Nature) return false;
+            if (Gender != 3 && Gender != pkm.Gender) return false;
 
-    public int CardType { get => Data[CardStart + 0x51]; set => Data[CardStart + 0x51] = (byte)value; }
-    public byte CardFlags { get => Data[CardStart + 0x52]; set => Data[CardStart + 0x52] = value; }
+            if (pkm is IAwakened s && s.IsAwakeningBelow(this))
+                return false;
 
-    public bool GiftRepeatable { get => (CardFlags & 1) == 0; set => CardFlags = (byte)((CardFlags & ~1) | (value ? 0 : 1)); }
-    public override bool GiftUsed { get => (CardFlags & 2) == 2; set => CardFlags = (byte)((CardFlags & ~2) | (value ? 2 : 0)); }
-    public bool GiftOncePerDay { get => (CardFlags & 4) == 4; set => CardFlags = (byte)((CardFlags & ~4) | (value ? 4 : 0)); }
-
-    public bool MultiObtain { get => Data[CardStart + 0x53] == 1; set => Data[CardStart + 0x53] = value ? (byte)1 : (byte)0; }
-
-    // Item Properties
-    public override bool IsItem { get => CardType == 1; set { if (value) CardType = 1; } }
-    public override int ItemID { get => ReadUInt16LittleEndian(Data.AsSpan(CardStart + 0x68)); set => WriteUInt16LittleEndian(Data.AsSpan(CardStart + 0x68), (ushort)value); }
-    public int GetItem(int index) => ReadUInt16LittleEndian(Data.AsSpan(CardStart + 0x68 + (0x4 * index)));
-    public void SetItem(int index, ushort item) => WriteUInt16LittleEndian(Data.AsSpan(CardStart + 0x68 + (4 * index)), item);
-    public int GetQuantity(int index) => ReadUInt16LittleEndian(Data.AsSpan(CardStart + 0x6A + (0x4 * index)));
-    public void SetQuantity(int index, ushort quantity) => WriteUInt16LittleEndian(Data.AsSpan(CardStart + 0x6A + (4 * index)), quantity);
-
-    public override int Quantity
-    {
-        get => ReadUInt16LittleEndian(Data.AsSpan(CardStart + 0x6A));
-        set => WriteUInt16LittleEndian(Data.AsSpan(CardStart + 0x6A), (ushort)value);
-    }
-
-    // Pokémon Properties
-    public override bool IsEntity { get => CardType == 0; set { if (value) CardType = 0; } }
-    public override bool IsShiny => PIDType == ShinyType6.Always;
-
-    public override Shiny Shiny => PIDType switch
-    {
-        ShinyType6.FixedValue => Shiny.FixedValue,
-        ShinyType6.Random => Shiny.Random,
-        ShinyType6.Always => Shiny.Always,
-        ShinyType6.Never => Shiny.Never,
-        _ => throw new ArgumentOutOfRangeException(),
-    };
-
-    public override int TID
-    {
-        get => ReadUInt16LittleEndian(Data.AsSpan(CardStart + 0x68));
-        set => WriteUInt16LittleEndian(Data.AsSpan(CardStart + 0x68), (ushort)value);
-    }
-
-    public override int SID {
-        get => ReadUInt16LittleEndian(Data.AsSpan(CardStart + 0x6A));
-        set => WriteUInt16LittleEndian(Data.AsSpan(CardStart + 0x6A), (ushort)value);
-    }
-
-    public int OriginGame
-    {
-        get => ReadInt32LittleEndian(Data.AsSpan(CardStart + 0x6C));
-        set => WriteInt32LittleEndian(Data.AsSpan(CardStart + 0x6C), value);
-    }
-
-    public uint EncryptionConstant {
-        get => ReadUInt32LittleEndian(Data.AsSpan(CardStart + 0x70));
-        set => WriteUInt32LittleEndian(Data.AsSpan(CardStart + 0x70), value);
-    }
-
-    public override int Ball
-    {
-        get => Data[CardStart + 0x76];
-        set => Data[CardStart + 0x76] = (byte)value; }
-
-    public override int HeldItem // no references
-    {
-        get => ReadUInt16LittleEndian(Data.AsSpan(CardStart + 0x78));
-        set => WriteUInt16LittleEndian(Data.AsSpan(CardStart + 0x78), (ushort)value);
-    }
-
-    public ushort Move1 { get => ReadUInt16LittleEndian(Data.AsSpan(CardStart + 0x7A)); set => WriteUInt16LittleEndian(Data.AsSpan(CardStart + 0x7A), value); }
-    public ushort Move2 { get => ReadUInt16LittleEndian(Data.AsSpan(CardStart + 0x7C)); set => WriteUInt16LittleEndian(Data.AsSpan(CardStart + 0x7C), value); }
-    public ushort Move3 { get => ReadUInt16LittleEndian(Data.AsSpan(CardStart + 0x7E)); set => WriteUInt16LittleEndian(Data.AsSpan(CardStart + 0x7E), value); }
-    public ushort Move4 { get => ReadUInt16LittleEndian(Data.AsSpan(CardStart + 0x80)); set => WriteUInt16LittleEndian(Data.AsSpan(CardStart + 0x80), value); }
-    public override ushort Species { get => ReadUInt16LittleEndian(Data.AsSpan(CardStart + 0x82)); set => WriteUInt16LittleEndian(Data.AsSpan(CardStart + 0x82), value); }
-    public override byte Form { get => Data[CardStart + 0x84]; set => Data[CardStart + 0x84] = value; }
-
-    // public int Language { get => Data[CardStart + 0x85]; set => Data[CardStart + 0x85] = (byte)value; }
-
-    // public string Nickname
-    // {
-    //     get => Util.TrimFromZero(Encoding.Unicode.GetString(Data, CardStart + 0x86, 0x1A));
-    //     set => Encoding.Unicode.GetBytes(value.PadRight(12 + 1, '\0')).CopyTo(Data, CardStart + 0x86);
-    // }
-
-    public int Nature { get => (sbyte)Data[CardStart + 0xA0]; set => Data[CardStart + 0xA0] = (byte)value; }
-    public override int Gender { get => Data[CardStart + 0xA1]; set => Data[CardStart + 0xA1] = (byte)value; }
-    public override int AbilityType { get => 3; set => Data[CardStart + 0xA2] = (byte)value; } // no references, always ability 0/1
-    public ShinyType6 PIDType { get => (ShinyType6)Data[CardStart + 0xA3]; set => Data[CardStart + 0xA3] = (byte)value; }
-    public override int EggLocation { get => ReadUInt16LittleEndian(Data.AsSpan(CardStart + 0xA4)); set => WriteUInt16LittleEndian(Data.AsSpan(CardStart + 0xA4), (ushort)value); }
-    public int MetLocation  { get => ReadUInt16LittleEndian(Data.AsSpan(CardStart + 0xA6)); set => WriteUInt16LittleEndian(Data.AsSpan(CardStart + 0xA6), (ushort)value); }
-    public int MetLevel { get => Data[CardStart + 0xA8]; set => Data[CardStart + 0xA8] = (byte)value; }
-
-    public int IV_HP { get => Data[CardStart + 0xAF]; set => Data[CardStart + 0xAF] = (byte)value; }
-    public int IV_ATK { get => Data[CardStart + 0xB0]; set => Data[CardStart + 0xB0] = (byte)value; }
-    public int IV_DEF { get => Data[CardStart + 0xB1]; set => Data[CardStart + 0xB1] = (byte)value; }
-    public int IV_SPE { get => Data[CardStart + 0xB2]; set => Data[CardStart + 0xB2] = (byte)value; }
-    public int IV_SPA { get => Data[CardStart + 0xB3]; set => Data[CardStart + 0xB3] = (byte)value; }
-    public int IV_SPD { get => Data[CardStart + 0xB4]; set => Data[CardStart + 0xB4] = (byte)value; }
-
-    public int OTGender { get => Data[CardStart + 0xB5]; set => Data[CardStart + 0xB5] = (byte)value; }
-
-    // public override string OT_Name
-    // {
-    //     get => Util.TrimFromZero(Encoding.Unicode.GetString(Data, CardStart + 0xB6, 0x1A));
-    //     set => Encoding.Unicode.GetBytes(value.PadRight(value.Length + 1, '\0')).CopyTo(Data, CardStart + 0xB6);
-    // }
-
-    public override byte Level { get => Data[CardStart + 0xD0]; set => Data[CardStart + 0xD0] = value; }
-    public override bool IsEgg { get => Data[CardStart + 0xD1] == 1; set => Data[CardStart + 0xD1] = value ? (byte)1 : (byte)0; }
-    public ushort AdditionalItem { get => ReadUInt16LittleEndian(Data.AsSpan(CardStart + 0xD2)); set => WriteUInt16LittleEndian(Data.AsSpan(CardStart + 0xD2), value); }
-
-    public uint PID { get => ReadUInt32LittleEndian(Data.AsSpan(0xD4)); set => WriteUInt32LittleEndian(Data.AsSpan(0xD4), value); }
-    public ushort RelearnMove1 { get => ReadUInt16LittleEndian(Data.AsSpan(CardStart + 0xD8)); set => WriteUInt16LittleEndian(Data.AsSpan(CardStart + 0xD8), value); }
-    public ushort RelearnMove2 { get => ReadUInt16LittleEndian(Data.AsSpan(CardStart + 0xDA)); set => WriteUInt16LittleEndian(Data.AsSpan(CardStart + 0xDA), value); }
-    public ushort RelearnMove3 { get => ReadUInt16LittleEndian(Data.AsSpan(CardStart + 0xDC)); set => WriteUInt16LittleEndian(Data.AsSpan(CardStart + 0xDC), value); }
-    public ushort RelearnMove4 { get => ReadUInt16LittleEndian(Data.AsSpan(CardStart + 0xDE)); set => WriteUInt16LittleEndian(Data.AsSpan(CardStart + 0xDE), value); }
-
-    public byte AV_HP  { get => Data[CardStart + 0xE5]; set => Data[CardStart + 0xE5] = value; }
-    public byte AV_ATK { get => Data[CardStart + 0xE6]; set => Data[CardStart + 0xE6] = value; }
-    public byte AV_DEF { get => Data[CardStart + 0xE7]; set => Data[CardStart + 0xE7] = value; }
-    public byte AV_SPE { get => Data[CardStart + 0xE8]; set => Data[CardStart + 0xE8] = value; }
-    public byte AV_SPA { get => Data[CardStart + 0xE9]; set => Data[CardStart + 0xE9] = value; }
-    public byte AV_SPD { get => Data[CardStart + 0xEA]; set => Data[CardStart + 0xEA] = value; }
-
-    // Meta Accessible Properties
-    public override int[] IVs
-    {
-        get => new[] { IV_HP, IV_ATK, IV_DEF, IV_SPE, IV_SPA, IV_SPD };
-        set
-        {
-            if (value.Length != 6) return;
-            IV_HP = value[0]; IV_ATK = value[1]; IV_DEF = value[2];
-            IV_SPE = value[3]; IV_SPA = value[4]; IV_SPD = value[5];
-        }
-    }
-
-    public override void GetIVs(Span<int> value)
-    {
-        if (value.Length != 6)
-            return;
-        value[0] = IV_HP;
-        value[1] = IV_ATK;
-        value[2] = IV_DEF;
-        value[3] = IV_SPE;
-        value[4] = IV_SPA;
-        value[5] = IV_SPD;
-    }
-
-    public bool GetIsNicknamed(int language) => Data[GetNicknameOffset(language)] != 0;
-
-    private static int GetLanguageIndex(int language)
-    {
-        var lang = (LanguageID) language;
-        if (lang is < LanguageID.Japanese or LanguageID.UNUSED_6 or > LanguageID.ChineseT)
-            return (int) LanguageID.English; // fallback
-        return lang < LanguageID.UNUSED_6 ? language - 1 : language - 2;
-    }
-
-    public override int Location { get => MetLocation; set => MetLocation = (ushort)value; }
-
-    public override Moveset Moves
-    {
-        get => new(Move1, Move2, Move3, Move4);
-        set
-        {
-            Move1 = value.Move1;
-            Move2 = value.Move2;
-            Move3 = value.Move3;
-            Move4 = value.Move4;
-        }
-    }
-
-    public override Moveset Relearn
-    {
-        get => new(RelearnMove1, RelearnMove2, RelearnMove3, RelearnMove4);
-        set
-        {
-            RelearnMove1 = value.Move1;
-            RelearnMove2 = value.Move2;
-            RelearnMove3 = value.Move3;
-            RelearnMove4 = value.Move4;
-        }
-    }
-
-    public override string OT_Name
-    {
-        get => GetOT(Language);
-        set
-        {
-            for (int i = 1; i < (int)LanguageID.ChineseT; i++)
-                SetOT(i, value);
-        }
-    }
-
-    public string Nickname => GetIsNicknamed(Language) ? GetNickname(Language) : string.Empty;
-    public bool IsNicknamed => false;
-    public int Language => 2;
-
-    public int GetLanguage(int redeemLanguage)
-    {
-        var languageOffset = GetLanguageIndex(redeemLanguage);
-        var value = Data[0x1D8 + languageOffset];
-        if (value != 0) // Fixed receiving language
-            return value;
-
-        // Use redeeming language (clamped to legal values for our sake)
-        if (redeemLanguage is < (int)LanguageID.Japanese or (int)LanguageID.UNUSED_6 or > (int)LanguageID.ChineseT)
-            return (int)LanguageID.English; // fallback
-        return redeemLanguage;
-    }
-
-    public bool GetHasOT(int language) => ReadUInt16LittleEndian(Data.AsSpan(GetOTOffset(language))) != 0;
-
-    public string GetNickname(int language) => StringConverter8.GetString(Data.AsSpan(GetNicknameOffset(language), 0x1A));
-    public void SetNickname(int language, string value) => StringConverter8.SetString(Data.AsSpan(GetNicknameOffset(language), 0x1A), value.AsSpan(), 12, StringConverterOption.ClearZero);
-
-    public string GetOT(int language) => StringConverter8.GetString(Data.AsSpan(GetOTOffset(language), 0x1A));
-    public void SetOT(int language, string value) => StringConverter8.SetString(Data.AsSpan(GetOTOffset(language), 0x1A), value.AsSpan(), 12, StringConverterOption.ClearZero);
-
-    private static int GetNicknameOffset(int language)
-    {
-        int index = GetLanguageIndex(language);
-        return 0x04 + (index * 0x1A);
-    }
-
-    private static int GetOTOffset(int language)
-    {
-        int index = GetLanguageIndex(language);
-        return 0xEE + (index * 0x1A);
-    }
-
-    public override PKM ConvertToPKM(ITrainerInfo tr, EncounterCriteria criteria)
-    {
-        if (!IsEntity)
-            throw new ArgumentException(nameof(IsEntity));
-
-        var rnd = Util.Rand;
-
-        int currentLevel = Level > 0 ? Level : rnd.Next(1, 101);
-        int metLevel = MetLevel > 0 ? MetLevel : currentLevel;
-        var pi = PersonalTable.GG.GetFormEntry(Species, Form);
-
-        var redeemLanguage = tr.Language;
-        var language = GetLanguage(redeemLanguage);
-        bool hasOT = GetHasOT(redeemLanguage);
-
-        var pk = new PB7
-        {
-            Species = Species,
-            HeldItem = HeldItem,
-            TID = TID,
-            SID = SID,
-            Met_Level = metLevel,
-            Form = Form,
-            EncryptionConstant = EncryptionConstant != 0 ? EncryptionConstant : Util.Rand32(),
-            Version = OriginGame != 0 ? OriginGame : tr.Game,
-            Language = language,
-            Ball = Ball,
-            Move1 = Move1,
-            Move2 = Move2,
-            Move3 = Move3,
-            Move4 = Move4,
-            RelearnMove1 = RelearnMove1,
-            RelearnMove2 = RelearnMove2,
-            RelearnMove3 = RelearnMove3,
-            RelearnMove4 = RelearnMove4,
-            Met_Location = MetLocation,
-            Egg_Location = EggLocation,
-            AV_HP = AV_HP,
-            AV_ATK = AV_ATK,
-            AV_DEF = AV_DEF,
-            AV_SPE = AV_SPE,
-            AV_SPA = AV_SPA,
-            AV_SPD = AV_SPD,
-
-            OT_Name = hasOT ? GetOT(redeemLanguage) : tr.OT,
-            OT_Gender = OTGender != 3 ? OTGender % 2 : tr.Gender,
-
-            EXP = Experience.GetEXP(currentLevel, pi.EXPGrowth),
-
-            OT_Friendship = pi.BaseFriendship,
-            FatefulEncounter = true,
-        };
-
-        if (hasOT)
-        {
-            pk.HT_Name = tr.OT;
-            pk.HT_Gender = tr.Gender;
-            pk.CurrentHandler = 1;
-        }
-
-        pk.SetMaximumPPCurrent();
-
-        if ((tr.Generation > Generation && OriginGame == 0) || !CanBeReceivedByVersion(pk.Version))
-        {
-            // give random valid game
-            do { pk.Version = (int)GameVersion.GP + rnd.Next(2); }
-            while (!CanBeReceivedByVersion(pk.Version));
-        }
-
-        if (OTGender == 3)
-        {
-            pk.TID = tr.TID;
-            pk.SID = tr.SID;
-        }
-
-        pk.MetDate = Date ?? DateTime.Now;
-        pk.IsNicknamed = GetIsNicknamed(redeemLanguage);
-        pk.Nickname = pk.IsNicknamed ? GetNickname(redeemLanguage) : SpeciesName.GetSpeciesNameGeneration(Species, pk.Language, Generation);
-
-        SetPINGA(pk, criteria);
-
-        if (IsEgg)
-            SetEggMetData(pk);
-        pk.CurrentFriendship = pk.IsEgg ? pi.HatchCycles : pi.BaseFriendship;
-
-        pk.HeightScalar = (byte)rnd.Next(0x100);
-        pk.WeightScalar = (byte)rnd.Next(0x100);
-        pk.ResetCalculatedValues(); // cp & dimensions
-
-        pk.RefreshChecksum();
-        return pk;
-    }
-
-    private void SetEggMetData(PKM pk)
-    {
-        pk.IsEgg = true;
-        pk.EggMetDate = Date;
-        pk.Nickname = SpeciesName.GetEggName(pk.Language, Generation);
-        pk.IsNicknamed = true;
-    }
-
-    private void SetPINGA(PKM pk, EncounterCriteria criteria)
-    {
-        var pi = PersonalTable.GG.GetFormEntry(Species, Form);
-        pk.Nature = (int)criteria.GetNature((Nature)Nature);
-        pk.Gender = criteria.GetGender(Gender, pi);
-        var av = GetAbilityIndex(criteria);
-        pk.RefreshAbility(av);
-        SetPID(pk);
-        SetIVs(pk);
-    }
-
-    private int GetAbilityIndex(EncounterCriteria criteria) => AbilityType switch
-    {
-        00 or 01 or 02 => AbilityType, // Fixed 0/1/2
-        03 or 04 => criteria.GetAbilityFromNumber(Ability), // 0/1 or 0/1/H
-        _ => throw new ArgumentOutOfRangeException(nameof(AbilityType)),
-    };
-
-    public override AbilityPermission Ability => AbilityType switch
-    {
-        0 => AbilityPermission.OnlyFirst,
-        1 => AbilityPermission.OnlySecond,
-        2 => AbilityPermission.OnlyHidden,
-        3 => AbilityPermission.Any12,
-        _ => AbilityPermission.Any12H,
-    };
-
-    private void SetPID(PKM pk)
-    {
-        switch (PIDType)
-        {
-            case ShinyType6.FixedValue: // Specified
-                pk.PID = PID;
-                break;
-            case ShinyType6.Random: // Random
-                pk.PID = Util.Rand32();
-                break;
-            case ShinyType6.Always: // Random Shiny
-                pk.PID = Util.Rand32();
-                pk.PID = (uint)(((pk.TID ^ pk.SID ^ (pk.PID & 0xFFFF)) << 16) | (pk.PID & 0xFFFF));
-                break;
-            case ShinyType6.Never: // Random Nonshiny
-                pk.PID = Util.Rand32();
-                if (pk.IsShiny) pk.PID ^= 0x10000000;
-                break;
-        }
-    }
-
-    private void SetIVs(PKM pk)
-    {
-        Span<int> finalIVs = stackalloc int[6];
-        GetIVs(finalIVs);
-        var ivflag = finalIVs.Find(static iv => (byte)(iv - 0xFC) < 3);
-        var rng = Util.Rand;
-        if (ivflag == default) // Random IVs
-        {
-            for (int i = 0; i < finalIVs.Length; i++)
-            {
-                if (finalIVs[i] > 31)
-                    finalIVs[i] = rng.Next(32);
-            }
-        }
-        else // 1/2/3 perfect IVs
-        {
-            int IVCount = ivflag - 0xFB;
-            do { finalIVs[rng.Next(6)] = 31; }
-            while (finalIVs.Count(31) < IVCount);
-            for (int i = 0; i < finalIVs.Length; i++)
-            {
-                if (finalIVs[i] != 31)
-                    finalIVs[i] = rng.Next(32);
-            }
-        }
-        pk.SetIVs(finalIVs);
-    }
-
-    public bool CanHaveLanguage(int language)
-    {
-        if (language is < (int) LanguageID.Japanese or > (int) LanguageID.ChineseT)
-            return false;
-
-        if (CanBeAnyLanguage())
             return true;
+        }
 
-        return Array.IndexOf(Data, (byte)language, 0x1D8, 9) >= 0;
+        protected override bool IsMatchDeferred(PKM pkm)
+        {
+            return pkm.Species == Species;
+        }
     }
-
-    public bool CanBeAnyLanguage()
-    {
-        for (int i = 0; i < 9; i++)
-        {
-            if (Data[0x1D8 + i] != 0)
-                return false;
-        }
-        return true;
-    }
-
-    public bool CanHandleOT(int language) => string.IsNullOrEmpty(GetOT(language));
-
-    public override bool IsMatchExact(PKM pk, EvoCriteria evo)
-    {
-        if (!IsEgg)
-        {
-            if (OTGender != 3)
-            {
-                if (SID != pk.SID) return false;
-                if (TID != pk.TID) return false;
-                if (OTGender != pk.OT_Gender) return false;
-            }
-            var OT = GetOT(pk.Language);
-            if (!string.IsNullOrEmpty(OT) && OT != pk.OT_Name) return false;
-            if (OriginGame != 0 && OriginGame != pk.Version) return false;
-            if (EncryptionConstant != 0 && EncryptionConstant != pk.EncryptionConstant) return false;
-
-            if (!IsMatchEggLocation(pk)) return false;
-            if (!CanBeAnyLanguage() && !CanHaveLanguage(pk.Language))
-                return false;
-        }
-
-        if (Form != evo.Form && !FormInfo.IsFormChangeable(Species, Form, pk.Form, pk.Format))
-            return false;
-
-        if (IsEgg)
-        {
-            if (EggLocation != pk.Egg_Location) // traded
-            {
-                if (pk.Egg_Location != Locations.LinkTrade6)
-                    return false;
-            }
-            else if (PIDType == 0 && pk.IsShiny)
-            {
-                return false; // can't be traded away for unshiny
-            }
-
-            if (pk.IsEgg && !pk.IsNative)
-                return false;
-        }
-        else
-        {
-            if (!Shiny.IsValid(pk)) return false;
-            if (!IsMatchEggLocation(pk)) return false;
-            if (MetLocation != pk.Met_Location) return false;
-        }
-
-        if (MetLevel != pk.Met_Level) return false;
-        if (Ball != pk.Ball) return false;
-        if (OTGender < 3 && OTGender != pk.OT_Gender) return false;
-        if (Nature != -1 && pk.Nature != Nature) return false;
-        if (Gender != 3 && Gender != pk.Gender) return false;
-
-        if (pk is IAwakened s && s.IsAwakeningBelow(this))
-            return false;
-
-        return true;
-    }
-
-    protected override bool IsMatchDeferred(PKM pk) => Species != pk.Species;
-    protected override bool IsMatchPartial(PKM pk) => false;
 }

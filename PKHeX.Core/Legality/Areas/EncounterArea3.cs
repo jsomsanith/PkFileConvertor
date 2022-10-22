@@ -1,163 +1,144 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
-using static System.Buffers.Binary.BinaryPrimitives;
+using System.Linq;
 
-namespace PKHeX.Core;
-
-/// <inheritdoc cref="EncounterArea" />
-/// <summary>
-/// <see cref="GameVersion.Gen3"/> encounter area
-/// </summary>
-public sealed record EncounterArea3 : EncounterArea
+namespace PKHeX.Core
 {
-    public readonly int Rate;
-    public readonly EncounterSlot3[] Slots;
-
-    protected override IReadOnlyList<EncounterSlot> Raw => Slots;
-
-    public static EncounterArea3[] GetAreas(BinLinkerAccessor input, GameVersion game)
+    /// <inheritdoc />
+    /// <summary>
+    /// <see cref="GameVersion.Gen3"/> encounter area
+    /// </summary>
+    public sealed class EncounterArea3 : EncounterArea
     {
-        var result = new EncounterArea3[input.Length];
-        for (int i = 0; i < result.Length; i++)
-            result[i] = new EncounterArea3(input[i], game);
-        return result;
-    }
-
-    public static EncounterArea3[] GetAreasSwarm(BinLinkerAccessor input, GameVersion game)
-    {
-        var result = new EncounterArea3[input.Length];
-        for (int i = 0; i < result.Length; i++)
-            result[i] = new EncounterArea3(input[i], game, SlotType.Swarm | SlotType.Grass);
-        return result;
-    }
-
-    private EncounterArea3(ReadOnlySpan<byte> data, GameVersion game) : base(game)
-    {
-        Location = ReadInt16LittleEndian(data);
-        Type = (SlotType)data[2];
-        Rate = data[3];
-
-        Slots = ReadRegularSlots(data);
-    }
-
-    private EncounterArea3(ReadOnlySpan<byte> data, GameVersion game, SlotType type) : base(game)
-    {
-        Location = ReadInt16LittleEndian(data);
-        Type = type;
-        Rate = data[3];
-
-        Slots = ReadSwarmSlots(data);
-    }
-
-    private EncounterSlot3[] ReadRegularSlots(ReadOnlySpan<byte> data)
-    {
-        const int size = 10;
-        int count = (data.Length - 4) / size;
-        var slots = new EncounterSlot3[count];
-        for (int i = 0; i < slots.Length; i++)
+        private static IEnumerable<EncounterSlot> GetSlots3(byte[] data, ref int ofs, int numslots, SlotType t)
         {
-            int offset = 4 + (size * i);
-            var entry = data.Slice(offset, size);
-            slots[i] = ReadRegularSlot(entry);
+            var slots = new List<EncounterSlot>();
+            int Ratio = data[ofs];
+            //1 byte padding
+            if (Ratio > 0)
+                ReadInSlots(data, ofs, numslots, t, slots);
+            ofs += 2 + (numslots * 4);
+            return slots;
         }
 
-        return slots;
-    }
-
-    private EncounterSlot3 ReadRegularSlot(ReadOnlySpan<byte> entry)
-    {
-        ushort species = ReadUInt16LittleEndian(entry);
-        byte form = entry[2];
-        byte slotNum = entry[3];
-        byte min = entry[4];
-        byte max = entry[5];
-
-        byte mpi = entry[6];
-        byte mpc = entry[7];
-        byte sti = entry[8];
-        byte stc = entry[9];
-        return new EncounterSlot3(this, species, form, min, max, slotNum, mpi, mpc, sti, stc);
-    }
-
-    private EncounterSlot3[] ReadSwarmSlots(ReadOnlySpan<byte> data)
-    {
-        const int size = 14;
-        int count = (data.Length - 4) / size;
-        var slots = new EncounterSlot3[count];
-        for (int i = 0; i < slots.Length; i++)
+        private static void ReadInSlots(byte[] data, int ofs, int numslots, SlotType t, List<EncounterSlot> slots)
         {
-            int offset = 4 + (size * i);
-            var entry = data.Slice(offset, size);
-            slots[i] = ReadSwarmSlot(entry);
-        }
-
-        return slots;
-    }
-
-    private EncounterSlot3Swarm ReadSwarmSlot(ReadOnlySpan<byte> entry)
-    {
-        ushort species = ReadUInt16LittleEndian(entry);
-        // form always 0
-        byte slotNum = entry[3];
-        byte min = entry[4];
-        byte max = entry[5];
-
-        var moves = new Moveset(
-            ReadUInt16LittleEndian(entry[06..]),
-            ReadUInt16LittleEndian(entry[08..]),
-            ReadUInt16LittleEndian(entry[10..]),
-            ReadUInt16LittleEndian(entry[12..])
-        );
-
-        return new EncounterSlot3Swarm(this, species, min, max, slotNum, moves);
-    }
-
-    public override IEnumerable<EncounterSlot> GetMatchingSlots(PKM pk, EvoCriteria[] chain)
-    {
-        if (pk.Format != 3) // Met Location and Met Level are changed on PK3->PK4
-            return GetSlotsFuzzy(chain);
-        if (pk.Met_Location != Location)
-            return Array.Empty<EncounterSlot>();
-        return GetSlotsMatching(chain, pk.Met_Level);
-    }
-
-    private IEnumerable<EncounterSlot3> GetSlotsMatching(EvoCriteria[] chain, int lvl)
-    {
-        foreach (var slot in Slots)
-        {
-            foreach (var evo in chain)
+            for (int i = 0; i < numslots; i++)
             {
-                if (slot.Species != evo.Species)
+                int o = ofs + (i * 4);
+                int species = BitConverter.ToInt16(data, o + 4);
+                if (species <= 0)
                     continue;
 
-                if (slot.Form != evo.Form)
-                    break;
-                if (!slot.IsLevelWithinRange(lvl))
-                    break;
-
-                yield return slot;
-                break;
+                slots.Add(new EncounterSlot
+                {
+                    LevelMin = data[o + 2],
+                    LevelMax = data[o + 3],
+                    Species = species,
+                    SlotNumber = i,
+                    Type = t
+                });
             }
         }
-    }
 
-    private IEnumerable<EncounterSlot3> GetSlotsFuzzy(EvoCriteria[] chain)
-    {
-        foreach (var slot in Slots)
+        private static IEnumerable<EncounterSlot> GetSlots3Fishing(byte[] data, ref int ofs, int numslots)
         {
-            foreach (var evo in chain)
+            var slots = new List<EncounterSlot>();
+            int Ratio = data[ofs];
+            //1 byte padding
+            if (Ratio > 0)
+                ReadFishingSlots(data, ofs, numslots, slots);
+            ofs += 2 + (numslots * 4);
+            return slots;
+        }
+
+        private static void ReadFishingSlots(byte[] data, int ofs, int numslots, List<EncounterSlot> slots)
+        {
+            for (int i = 0; i < numslots; i++)
             {
-                if (slot.Species != evo.Species)
+                int Species = BitConverter.ToInt16(data, ofs + 4 + (i * 4));
+                if (Species <= 0)
                     continue;
 
-                if (slot.Form != evo.Form)
-                    break;
-                if (slot.LevelMin > evo.LevelMax)
-                    break;
+                var slot = new EncounterSlot
+                {
+                    LevelMin = data[ofs + 2 + (i * 4)],
+                    LevelMax = data[ofs + 3 + (i * 4)],
+                    Species = Species,
+                };
+                if (i < 2)
+                {
+                    slot.Type = SlotType.Old_Rod;
+                    slot.SlotNumber = i; // 0,1
+                }
+                else if (i < 5)
+                {
+                    slot.Type = SlotType.Good_Rod;
+                    slot.SlotNumber = i - 2; // 0,1,2
+                }
+                else
+                {
+                    slot.Type = SlotType.Super_Rod;
+                    slot.SlotNumber = i - 5; // 0,1,2,3,4
+                }
 
-                yield return slot;
-                break;
+                slots.Add(slot);
             }
+        }
+
+        private static EncounterArea3 GetArea3(byte[] data)
+        {
+            var HaveGrassSlots = data[1] == 1;
+            var HaveSurfSlots = data[2] == 1;
+            var HaveRockSmashSlots = data[3] == 1;
+            var HaveFishingSlots = data[4] == 1;
+
+            int offset = 5;
+            var slots = new List<EncounterSlot>();
+            if (HaveGrassSlots)
+                slots.AddRange(GetSlots3(data, ref offset, 12, SlotType.Grass));
+            if (HaveSurfSlots)
+                slots.AddRange(GetSlots3(data, ref offset, 5, SlotType.Surf));
+            if (HaveRockSmashSlots)
+                slots.AddRange(GetSlots3(data, ref offset, 5, SlotType.Rock_Smash));
+            if (HaveFishingSlots)
+                slots.AddRange(GetSlots3Fishing(data, ref offset, 10));
+
+            var area = new EncounterArea3
+            {
+                Location = data[0],
+                Slots = slots.ToArray()
+            };
+            foreach (var slot in area.Slots)
+                slot.Area = area;
+
+            return area;
+        }
+
+        /// <summary>
+        /// Gets the encounter areas with <see cref="EncounterSlot"/> information from Generation 3 data.
+        /// </summary>
+        /// <param name="entries">Raw data, one byte array per encounter area</param>
+        /// <returns>Array of encounter areas.</returns>
+        public static EncounterArea3[] GetArray3(byte[][] entries)
+        {
+            return entries.Select(GetArea3).Where(Area => Area.Slots.Length != 0).ToArray();
+        }
+
+        protected override IEnumerable<EncounterSlot> GetMatchFromEvoLevel(PKM pkm, IEnumerable<EvoCriteria> vs, int minLevel)
+        {
+            var slots = Slots.Where(slot => vs.Any(evo => evo.Species == slot.Species && evo.Level >= slot.LevelMin));
+
+            if (pkm.Format != 3) // transferred to Gen4+
+                return slots.Where(slot => slot.LevelMin <= minLevel);
+            return slots.Where(s => s.IsLevelWithinRange(minLevel));
+        }
+
+        protected override IEnumerable<EncounterSlot> GetFilteredSlots(PKM pkm, IEnumerable<EncounterSlot> slots, int minLevel)
+        {
+            if (pkm.Species == (int) Species.Unown)
+                return slots.Where(z => z.Form == pkm.AltForm);
+            return slots;
         }
     }
 }

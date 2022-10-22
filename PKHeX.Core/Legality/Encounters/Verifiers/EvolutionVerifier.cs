@@ -1,61 +1,70 @@
-using static PKHeX.Core.EvolutionRestrictions;
+﻿using System.Linq;
 using static PKHeX.Core.LegalityCheckStrings;
 
-namespace PKHeX.Core;
-
-/// <summary>
-/// Verify Evolution Information for a matched <see cref="IEncounterable"/>
-/// </summary>
-public static class EvolutionVerifier
+namespace PKHeX.Core
 {
     /// <summary>
-    /// Verifies Evolution scenarios of an <see cref="IEncounterable"/> for an input <see cref="PKM"/> and relevant <see cref="LegalInfo"/>.
+    /// Verify Evolution Information for a matched <see cref="IEncounterable"/>
     /// </summary>
-    /// <param name="pk">Source data to verify</param>
-    /// <param name="info">Source supporting information to verify with</param>
-    public static CheckResult VerifyEvolution(PKM pk, LegalInfo info)
+    public static class EvolutionVerifier
     {
-        // Check if basic evolution methods are satisfiable with this encounter.
-        if (!IsValidEvolution(pk, info))
-            return new CheckResult(Severity.Invalid, LEvoInvalid, CheckIdentifier.Evolution);
-
-        // Check if complex evolution methods are satisfiable with this encounter.
-        if (!IsValidEvolutionWithMove(pk, info))
-            return new CheckResult(Severity.Invalid, string.Format(LMoveEvoFCombination_0, ParseSettings.SpeciesStrings[pk.Species]), CheckIdentifier.Evolution);
-
-        return VALID;
-    }
-
-    private static readonly CheckResult VALID = new(CheckIdentifier.Evolution);
-
-    /// <summary>
-    /// Checks if the Evolution from the source <see cref="IEncounterable"/> is valid.
-    /// </summary>
-    /// <param name="pk">Source data to verify</param>
-    /// <param name="info">Source supporting information to verify with</param>
-    /// <returns>Evolution is valid or not</returns>
-    private static bool IsValidEvolution(PKM pk, LegalInfo info)
-    {
-        var chains = info.EvoChainsAllGens;
-        if (chains.Get(pk.Context).Length == 0)
-            return false; // Can't exist as current species
-
-        // OK if un-evolved from original encounter
-        ushort species = pk.Species;
-        var enc = info.EncounterMatch;
-        if (species == enc.Species) // never evolved
-            return true;
-
-        // Bigender->Fixed (non-Genderless) destination species, accounting for PID-Gender relationship
-        if (species == (int)Species.Vespiquen && enc.Generation < 6 && (pk.EncryptionConstant & 0xFF) >= 0x1F) // Combee->Vespiquen Invalid Evolution
-            return false;
-
-        // Double check that our encounter was able to exist as the encounter species.
-        foreach (var z in chains.Get(enc.Context))
+        /// <summary>
+        /// Verifies Evolution scenarios of an <see cref="IEncounterable"/> for an input <see cref="PKM"/> and relevant <see cref="LegalInfo"/>.
+        /// </summary>
+        /// <param name="pkm">Source data to verify</param>
+        /// <param name="info">Source supporting information to verify with</param>
+        /// <returns></returns>
+        public static CheckResult VerifyEvolution(PKM pkm, LegalInfo info)
         {
-            if (z.Species == enc.Species)
-                return true;
+            return IsValidEvolution(pkm, info)
+                ? new CheckResult(CheckIdentifier.Evolution)
+                : new CheckResult(Severity.Invalid, LEvoInvalid, CheckIdentifier.Evolution);
         }
-        return false;
+
+        /// <summary>
+        /// Checks if the Evolution from the source <see cref="IEncounterable"/> is valid.
+        /// </summary>
+        /// <param name="pkm">Source data to verify</param>
+        /// <param name="info">Source supporting information to verify with</param>
+        /// <returns>Evolution is valid or not</returns>
+        private static bool IsValidEvolution(PKM pkm, LegalInfo info)
+        {
+            if (info.EvoChainsAllGens[pkm.Format].Count == 0)
+                return false; // Can't exist as current species
+
+            int species = pkm.Species;
+            if (info.EncounterMatch.Species == species)
+                return true;
+            if (info.EncounterMatch.EggEncounter && species == (int)Species.Milotic && pkm.Format >= 5 && !pkm.IsUntraded) // Prism Scale
+                return true;
+            if (species == (int)Species.Vespiquen && info.Generation < 6 && (pkm.PID & 0xFF) >= 0x1F) // Combee->Vespiquen Invalid Evolution
+                return false;
+
+            if (info.Generation > 0 && info.EvoChainsAllGens[info.Generation].All(z => z.Species != info.EncounterMatch.Species))
+                return false; // Can't exist as origin species
+
+            // If current species evolved with a move evolution and encounter species is not current species check if the evolution by move is valid
+            // Only the evolution by move is checked, if there is another evolution before the evolution by move is covered in IsEvolutionValid
+            if (Legal.SpeciesEvolutionWithMove.Contains(species))
+                return Legal.IsEvolutionValidWithMove(pkm, info);
+
+            return true;
+        }
+
+        public static bool IsEvolvedChangedFormValid(int species, int currentForm, int originalForm)
+        {
+            switch (currentForm)
+            {
+                case 0 when Legal.GalarForm0Evolutions.TryGetValue(species, out var val):
+                    return originalForm == val;
+                case 1 when Legal.AlolanVariantEvolutions12.Contains(species):
+                case 1 when Legal.GalarVariantFormEvolutions.Contains(species):
+                    return originalForm == 0;
+                case 2 when species == (int)Species.Darmanitan:
+                    return originalForm == 1;
+                default:
+                    return false;
+            }
+        }
     }
 }

@@ -1,32 +1,39 @@
 using System;
 
-namespace PKHeX.Core;
-
-/// <summary>
-/// Party Data <see cref="ISlotInfo"/>
-/// </summary>
-public sealed record SlotInfoParty(int Slot) : ISlotInfo
+namespace PKHeX.Core
 {
-    public int Slot { get; private set; } = Slot;
-    public SlotOrigin Origin => SlotOrigin.Party;
-    public bool CanWriteTo(SaveFile sav) => sav.HasParty;
-
-    public WriteBlockedMessage CanWriteTo(SaveFile sav, PKM pk) => pk.IsEgg && sav.IsPartyAllEggs(Slot)
-        ? WriteBlockedMessage.InvalidPartyConfiguration
-        : WriteBlockedMessage.None;
-
-    public bool WriteTo(SaveFile sav, PKM pk, PKMImportSetting setting = PKMImportSetting.UseDefault)
+    /// <summary>
+    /// Party Data <see cref="ISlotInfo"/>
+    /// </summary>
+    public sealed class SlotInfoParty : ISlotInfo
     {
-        if (pk.Species == 0)
+        public int Slot { get; private set; }
+        public bool CanWriteTo(SaveFile sav) => sav.HasParty;
+
+        public WriteBlockedMessage CanWriteTo(SaveFile sav, PKM pkm) => pkm.IsEgg && sav.IsPartyAllEggs(Slot)
+            ? WriteBlockedMessage.InvalidPartyConfiguration
+            : WriteBlockedMessage.None;
+
+        public SlotInfoParty(int slot) => Slot = slot;
+
+        public bool WriteTo(SaveFile sav, PKM pkm, PKMImportSetting setting = PKMImportSetting.UseDefault)
         {
-            sav.DeletePartySlot(Slot);
-            Slot = Math.Max(0, sav.PartyCount - 1);
+            if (pkm.Species == 0)
+            {
+                sav.DeletePartySlot(Slot);
+                Slot = sav.PartyCount;
+                return true;
+            }
+            Slot = Math.Min(Slot, sav.PartyCount); // realign if necessary
+            sav.SetPartySlotAtIndex(pkm, Slot, setting, setting);
             return true;
         }
-        Slot = Math.Min(Slot, sav.PartyCount); // realign if necessary
-        sav.SetPartySlotAtIndex(pk, Slot, setting, setting);
-        return true;
-    }
 
-    public PKM Read(SaveFile sav) => sav.GetPartySlotAtIndex(Slot);
+        public PKM Read(SaveFile sav) => sav.GetPartySlotAtIndex(Slot);
+
+        private bool Equals(SlotInfoParty other) => Slot == other.Slot;
+        public bool Equals(ISlotInfo other) => other is SlotInfoParty p && Equals(p);
+        public override bool Equals(object obj) => obj is SlotInfoParty p && Equals(p);
+        public override int GetHashCode() => Slot;
+    }
 }

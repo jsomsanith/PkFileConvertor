@@ -1,8 +1,9 @@
-﻿namespace PKHeX.Core;
-
-public enum RotateDirection
+﻿namespace PKHeX.Core
 {
-    None,
-    Right,
-    Left,
+    public enum RotateDirection
+    {
+        None,
+        Right,
+        Left,
+    }
 }

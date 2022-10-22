@@ -1,360 +1,325 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
-using static System.Buffers.Binary.BinaryPrimitives;
+using System.Linq;
+using System.Text;
 
-namespace PKHeX.Core;
-
-/// <summary>
-/// Generation 4 <see cref="SaveFile"/> object for Pokémon Battle Revolution saves.
-/// </summary>
-public sealed class SAV4BR : SaveFile
+namespace PKHeX.Core
 {
-    protected internal override string ShortSummary => $"{Version} #{SaveCount:0000}";
-    public override string Extension => string.Empty;
-    public override IPersonalTable Personal => PersonalTable.DP;
-    public override IReadOnlyList<ushort> HeldItems => Legal.HeldItems_DP;
-
-    private const int SAVE_COUNT = 4;
-    public const int SIZE_HALF = 0x1C0000;
-
-    public SAV4BR() : base(SaveUtil.SIZE_G4BR)
+    /// <summary>
+    /// Generation 4 <see cref="SaveFile"/> object for Pokémon Battle Revolution saves.
+    /// </summary>
+    public sealed class SAV4BR : SaveFile
     {
-        ClearBoxes();
-    }
+        protected override string BAKText => $"{Version} #{SaveCount:0000}";
+        public override string Filter => "PbrSaveData|*";
+        public override string Extension => string.Empty;
+        public override PersonalTable Personal => PersonalTable.DP;
+        public override IReadOnlyList<ushort> HeldItems => Legal.HeldItems_DP;
 
-    public SAV4BR(byte[] data) : base(data)
-    {
-        InitializeData(data);
-    }
+        private const int SAVE_COUNT = 4;
 
-    private void InitializeData(ReadOnlySpan<byte> data)
-    {
-        Data = DecryptPBRSaveData(data);
-
-        // Detect active save
-        var first  = ReadUInt32BigEndian(Data.AsSpan(0x00004C));
-        var second = ReadUInt32BigEndian(Data.AsSpan(0x1C004C));
-        SaveCount = Math.Max(second, first);
-        if (second > first)
+        public SAV4BR() : base(SaveUtil.SIZE_G4BR)
         {
-            // swap halves
-            byte[] tempData = new byte[SIZE_HALF];
-            Array.Copy(Data, 0, tempData, 0, SIZE_HALF);
-            Array.Copy(Data, SIZE_HALF, Data, 0, SIZE_HALF);
-            tempData.CopyTo(Data, SIZE_HALF);
+            ClearBoxes();
         }
 
-        var names = (string[]) SaveNames;
-        for (int i = 0; i < SAVE_COUNT; i++)
+        public SAV4BR(byte[] data) : base(data)
         {
-            var name = GetOTName(i);
-            if (string.IsNullOrWhiteSpace(name))
-                name = $"Empty {i + 1}";
-            else if (_currentSlot == -1)
-                _currentSlot = i;
-            names[i] = name;
+            InitializeData(data);
         }
 
-        if (_currentSlot == -1)
-            _currentSlot = 0;
-
-        CurrentSlot = _currentSlot;
-    }
-
-    /// <summary> Amount of times the primary save has been saved </summary>
-    private uint SaveCount;
-
-    protected override byte[] GetFinalData()
-    {
-        SetChecksums();
-        return EncryptPBRSaveData(Data);
-    }
-
-    // Configuration
-    protected override SaveFile CloneInternal() => new SAV4BR(Write());
-
-    public readonly IReadOnlyList<string> SaveNames = new string[SAVE_COUNT];
-
-    private int _currentSlot = -1;
-    private const int SIZE_SLOT = 0x6FF00;
-
-    public int CurrentSlot
-    {
-        get => _currentSlot;
-        // 4 save slots, data reading depends on current slot
-        set
+        private void InitializeData(byte[] data)
         {
-            _currentSlot = value;
-            var ofs = SIZE_SLOT * _currentSlot;
-            Box = ofs + 0x978;
-            Party = ofs + 0x13A54; // first team slot after boxes
-            BoxName = ofs + 0x58674;
-        }
-    }
+            Data = DecryptPBRSaveData(data);
 
-    protected override int SIZE_STORED => PokeCrypto.SIZE_4STORED;
-    protected override int SIZE_PARTY => PokeCrypto.SIZE_4STORED + 4;
-    public override PKM BlankPKM => new BK4();
-    public override Type PKMType => typeof(BK4);
-
-    public override ushort MaxMoveID => 467;
-    public override ushort MaxSpeciesID => Legal.MaxSpeciesID_4;
-    public override int MaxAbilityID => Legal.MaxAbilityID_4;
-    public override int MaxItemID => Legal.MaxItemID_4_HGSS;
-    public override int MaxBallID => Legal.MaxBallID_4;
-    public override int MaxGameID => Legal.MaxGameID_4;
-
-    public override int MaxEV => 255;
-    public override int Generation => 4;
-    public override EntityContext Context => EntityContext.Gen4;
-    protected override int GiftCountMax => 1;
-    public override int OTLength => 7;
-    public override int NickLength => 10;
-    public override int MaxMoney => 999999;
-    public override int Language => (int)LanguageID.English; // prevent KOR from inhabiting
-
-    public override int BoxCount => 18;
-
-    public override int PartyCount
-    {
-        get
-        {
-            int ctr = 0;
-            for (int i = 0; i < 6; i++)
+            // Detect active save
+            SaveCount = Math.Max(BigEndian.ToUInt32(Data, 0x1C004C), BigEndian.ToUInt32(Data, 0x4C));
+            if (BigEndian.ToUInt32(Data, 0x1C004C) > BigEndian.ToUInt32(Data, 0x4C))
             {
-                if (Data[GetPartyOffset(i) + 4] != 0) // sanity
-                    ctr++;
+                byte[] tempData = new byte[0x1C0000];
+                Array.Copy(Data, 0, tempData, 0, 0x1C0000);
+                Array.Copy(Data, 0x1C0000, Data, 0, 0x1C0000);
+                tempData.CopyTo(Data, 0x1C0000);
             }
-            return ctr;
+
+            for (int i = 0; i < SAVE_COUNT; i++)
+            {
+                if (!IsOTNamePresent(i))
+                    continue;
+                SaveSlots.Add(i);
+                SaveNames.Add(GetOTName(i));
+            }
+
+            CurrentSlot = SaveSlots[0];
         }
-        protected set
+
+        private bool IsOTNamePresent(int i)
         {
-            // Ignore, value is calculated
+            return BitConverter.ToUInt16(Data, 0x390 + (0x6FF00 * i)) != 0;
         }
-    }
 
-    // Checksums
-    protected override void SetChecksums()
-    {
-        SetChecksum(Data, 0x0000000, 0x0000100, 0x000008);
-        SetChecksum(Data, 0x0000000, SIZE_HALF, SIZE_HALF - 0x80);
-        SetChecksum(Data, SIZE_HALF, 0x0000100, SIZE_HALF + 0x000008);
-        SetChecksum(Data, SIZE_HALF, SIZE_HALF, SIZE_HALF + SIZE_HALF - 0x80);
-    }
+        private uint SaveCount;
 
-    public override bool ChecksumsValid => IsChecksumsValid(Data);
-    public override string ChecksumInfo => $"Checksums valid: {ChecksumsValid}.";
-
-    public static bool IsChecksumsValid(Span<byte> sav)
-    {
-        return VerifyChecksum(sav, 0x0000000, 0x0000100, 0x000008)
-               && VerifyChecksum(sav, 0x0000000, SIZE_HALF, SIZE_HALF - 0x80)
-               && VerifyChecksum(sav, SIZE_HALF, 0x0000100, SIZE_HALF + 0x000008)
-               && VerifyChecksum(sav, SIZE_HALF, SIZE_HALF, SIZE_HALF + SIZE_HALF - 0x80);
-    }
-
-    // Trainer Info
-    public override GameVersion Version { get => GameVersion.BATREV; protected set { } }
-
-    private string GetOTName(int slot)
-    {
-        var ofs = 0x390 + (0x6FF00 * slot);
-        var span = Data.AsSpan(ofs, 16);
-        return GetString(span);
-    }
-
-    private void SetOTName(int slot, string name)
-    {
-        var ofs = 0x390 + (0x6FF00 * slot);
-        var span = Data.AsSpan(ofs, 16);
-        SetString(span, name.AsSpan(), 7, StringConverterOption.ClearZero);
-    }
-
-    public string CurrentOT { get => GetOTName(_currentSlot); set => SetOTName(_currentSlot, value); }
-
-    // Storage
-    public override int GetPartyOffset(int slot) => Party + (SIZE_PARTY * slot);
-    public override int GetBoxOffset(int box) => Box + (SIZE_STORED * box * 30);
-
-    public override int TID
-    {
-        get => (Data[(_currentSlot * SIZE_SLOT) + 0x12867] << 8) | Data[(_currentSlot * SIZE_SLOT) + 0x12860];
-        set
+        protected override byte[] GetFinalData()
         {
-            Data[(_currentSlot * SIZE_SLOT) + 0x12867] = (byte)(value >> 8);
-            Data[(_currentSlot * SIZE_SLOT) + 0x12860] = (byte)(value & 0xFF);
+            SetChecksums();
+            return EncryptPBRSaveData(Data);
         }
-    }
 
-    public override int SID
-    {
-        get => (Data[(_currentSlot * SIZE_SLOT) + 0x12865] << 8) | Data[(_currentSlot * SIZE_SLOT) + 0x12866];
-        set
+        // Configuration
+        public override SaveFile Clone() => new SAV4BR(Write());
+
+        public readonly List<int> SaveSlots = new List<int>(SAVE_COUNT);
+        public readonly List<string> SaveNames = new List<string>(SAVE_COUNT);
+
+        private int _currentSlot;
+
+        public int CurrentSlot
         {
-            Data[(_currentSlot * SIZE_SLOT) + 0x12865] = (byte)(value >> 8);
-            Data[(_currentSlot * SIZE_SLOT) + 0x12866] = (byte)(value & 0xFF);
+            get => SaveSlots.IndexOf(_currentSlot);
+            // 4 save slots, data reading depends on current slot
+            set
+            {
+                _currentSlot = SaveSlots[value];
+                var ofs = 0x6FF00 * _currentSlot;
+                Box = ofs + 0x978;
+                Party = ofs + 0x13A54; // first team slot after boxes
+                BoxName = ofs + 0x58674;
+            }
         }
-    }
 
-    // Save file does not have Box Name / Wallpaper info
-    private int BoxName = -1;
-    private const int BoxNameLength = 0x28;
+        public override int SIZE_STORED => PokeCrypto.SIZE_4STORED;
+        protected override int SIZE_PARTY => PokeCrypto.SIZE_4STORED + 4;
+        public override PKM BlankPKM => new BK4();
+        public override Type PKMType => typeof(BK4);
 
-    public override string GetBoxName(int box)
-    {
-        if (BoxName < 0)
-            return $"BOX {box + 1}";
+        public override int MaxMoveID => 467;
+        public override int MaxSpeciesID => Legal.MaxSpeciesID_4;
+        public override int MaxAbilityID => Legal.MaxAbilityID_4;
+        public override int MaxItemID => Legal.MaxItemID_4_HGSS;
+        public override int MaxBallID => Legal.MaxBallID_4;
+        public override int MaxGameID => Legal.MaxGameID_4;
 
-        int ofs = BoxName + (box * BoxNameLength);
-        var span = Data.AsSpan(ofs, BoxNameLength);
-        if (ReadUInt16BigEndian(span) == 0)
-            return $"BOX {box + 1}";
-        return GetString(ofs, BoxNameLength);
-    }
+        public override int MaxEV => 255;
+        public override int Generation => 4;
+        protected override int GiftCountMax => 1;
+        public override int OTLength => 7;
+        public override int NickLength => 10;
+        public override int MaxMoney => 999999;
+        public override int Language => (int)LanguageID.English; // prevent KOR from inhabiting
 
-    public override void SetBoxName(int box, string value)
-    {
-        if (BoxName < 0)
-            return;
+        public override int BoxCount => 18;
 
-        int ofs = BoxName + (box * BoxNameLength);
-        var span = Data.AsSpan(ofs, BoxNameLength);
-        if (ReadUInt16BigEndian(span) == 0)
-            return;
-
-        SetString(span, value.AsSpan(), BoxNameLength / 2, StringConverterOption.ClearZero);
-    }
-
-    protected override PKM GetPKM(byte[] data)
-    {
-        if (data.Length != SIZE_STORED)
-            Array.Resize(ref data, SIZE_STORED);
-        return BK4.ReadUnshuffle(data);
-    }
-
-    protected override byte[] DecryptPKM(byte[] data) => data;
-
-    protected override void SetDex(PKM pk) { /* There's no PokéDex */ }
-
-    protected override void SetPKM(PKM pk, bool isParty = false)
-    {
-        var pk4 = (BK4)pk;
-        // Apply to this Save File
-        DateTime Date = DateTime.Now;
-        if (pk4.Trade(OT, TID, SID, Gender, Date.Day, Date.Month, Date.Year))
-            pk.RefreshChecksum();
-    }
-
-    protected override void SetPartyValues(PKM pk, bool isParty)
-    {
-        if (pk is G4PKM g4)
-            g4.Sanity = isParty ? (ushort)0xC000 : (ushort)0x4000;
-    }
-
-    public static byte[] DecryptPBRSaveData(ReadOnlySpan<byte> input)
-    {
-        byte[] output = new byte[input.Length];
-        Span<ushort> keys = stackalloc ushort[4];
-        for (int offset = 0; offset < SaveUtil.SIZE_G4BR; offset += SIZE_HALF)
+        public override int PartyCount
         {
-            var inSlice = input.Slice(offset, SIZE_HALF);
-            var outSlice = output.AsSpan(offset, SIZE_HALF);
-
-            // First 8 bytes are the encryption keys for this chunk.
-            var keySlice = inSlice[..(keys.Length * 2)];
-            GeniusCrypto.ReadKeys(keySlice, keys);
-
-            // Copy over the keys to the result.
-            keySlice.CopyTo(outSlice);
-
-            // Decrypt the input, result stored in output.
-            Range r = new(8, SIZE_HALF);
-            GeniusCrypto.Decrypt(inSlice[r], outSlice[r], keys);
+            get
+            {
+                int ctr = 0;
+                for (int i = 0; i < 6; i++)
+                {
+                    if (Data[GetPartyOffset(i) + 4] != 0) // sanity
+                        ctr++;
+                }
+                return ctr;
+            }
+            protected set
+            {
+                // Ignore, value is calculated
+            }
         }
-        return output;
-    }
 
-    private static byte[] EncryptPBRSaveData(ReadOnlySpan<byte> input)
-    {
-        byte[] output = new byte[input.Length];
-        Span<ushort> keys = stackalloc ushort[4];
-        for (int offset = 0; offset < SaveUtil.SIZE_G4BR; offset += SIZE_HALF)
+        // Checksums
+        protected override void SetChecksums()
         {
-            var inSlice = input.Slice(offset, SIZE_HALF);
-            var outSlice = output.AsSpan(offset, SIZE_HALF);
-
-            // First 8 bytes are the encryption keys for this chunk.
-            var keySlice = inSlice[..(keys.Length * 2)];
-            GeniusCrypto.ReadKeys(keySlice, keys);
-
-            // Copy over the keys to the result.
-            keySlice.CopyTo(outSlice);
-
-            // Decrypt the input, result stored in output.
-            Range r = new(8, SIZE_HALF);
-            GeniusCrypto.Encrypt(inSlice[r], outSlice[r], keys);
+            SetChecksum(Data, 0, 0x100, 8);
+            SetChecksum(Data, 0, 0x1C0000, 0x1BFF80);
+            SetChecksum(Data, 0x1C0000, 0x100, 0x1C0008);
+            SetChecksum(Data, 0x1C0000, 0x1C0000, 0x1BFF80 + 0x1C0000);
         }
-        return output;
-    }
 
-    public static bool VerifyChecksum(Span<byte> input, int offset, int len, int chkOffset)
-    {
-        // Read original checksum data, and clear it for recomputing
-        Span<uint> originalChecksums = stackalloc uint[16];
-        var checkSpan = input.Slice(chkOffset, 4 * originalChecksums.Length);
-        for (int i = 0; i < originalChecksums.Length; i++)
+        public override bool ChecksumsValid => IsChecksumsValid(Data);
+        public override string ChecksumInfo => $"Checksums valid: {ChecksumsValid}.";
+
+        public static bool IsChecksumsValid(byte[] sav)
         {
-            var chk = checkSpan.Slice(i * 4, 4);
-            originalChecksums[i] = ReadUInt32BigEndian(chk);
+            return VerifyChecksum(sav, 0x000000, 0x1C0000, 0x1BFF80)
+                && VerifyChecksum(sav, 0x000000, 0x000100, 0x000008)
+                && VerifyChecksum(sav, 0x1C0000, 0x1C0000, 0x1BFF80 + 0x1C0000)
+                && VerifyChecksum(sav, 0x1C0000, 0x000100, 0x1C0008);
         }
-        checkSpan.Clear();
 
-        // Compute current checksum of the specified span
-        Span<uint> checksums = stackalloc uint[16];
-        var span = input.Slice(offset, len);
-        ComputeChecksums(span, checksums);
+        // Trainer Info
+        public override GameVersion Version { get => GameVersion.BATREV; protected set { } }
 
-        // Restore original checksums
-        WriteChecksums(checkSpan, originalChecksums);
-
-        // Check if they match
-        return checksums.SequenceEqual(originalChecksums);
-    }
-
-    private static void SetChecksum(Span<byte> input, int offset, int len, int chkOffset)
-    {
-        // Wipe Checksum region.
-        var checkSpan = input.Slice(chkOffset, 4 * 16);
-        checkSpan.Clear();
-
-        // Compute current checksum of the specified span
-        Span<uint> checksums = stackalloc uint[16];
-        var span = input.Slice(offset, len);
-        ComputeChecksums(span, checksums);
-
-        WriteChecksums(checkSpan, checksums);
-    }
-
-    private static void WriteChecksums(Span<byte> span, Span<uint> checksums)
-    {
-        for (int i = 0; i < checksums.Length; i++)
+        private string GetOTName(int slot)
         {
-            var dest = span[(i * 4)..];
-            WriteUInt32BigEndian(dest, checksums[i]);
+            var ofs = 0x390 + (0x6FF00 * slot);
+            var str = Encoding.BigEndianUnicode.GetString(Data, ofs, 0x10);
+            return Util.TrimFromZero(str);
         }
-    }
 
-    private static void ComputeChecksums(Span<byte> span, Span<uint> checksums)
-    {
-        for (int i = 0; i < span.Length; i += 2)
+        private void SetOTName(int slot, string name)
         {
-            uint value = ReadUInt16BigEndian(span[i..]);
-            for (int c = 0; c < checksums.Length; c++)
-                checksums[c] += ((value >> c) & 1);
+            if (name.Length > 7)
+                name = name.Substring(0, 7);
+            var bytes = Encoding.BigEndianUnicode.GetBytes(name.PadRight(8, '\0'));
+            var ofs = 0x390 + (0x6FF00 * slot);
+            SetData(bytes, ofs);
+        }
+
+        public string CurrentOT { get => GetOTName(_currentSlot); set => SetOTName(_currentSlot, value); }
+
+        // Storage
+        public override int GetPartyOffset(int slot) => Party + (SIZE_PARTY * slot);
+        public override int GetBoxOffset(int box) => Box + (SIZE_STORED * box * 30);
+
+        // Save file does not have Box Name / Wallpaper info
+        private int BoxName = -1;
+        private const int BoxNameLength = 0x28;
+
+        public override string GetBoxName(int box)
+        {
+            if (BoxName < 0)
+                return $"BOX {box + 1}";
+
+            var str = Encoding.BigEndianUnicode.GetString(Data, BoxName + (box * BoxNameLength), BoxNameLength);
+            str = Util.TrimFromZero(str);
+            if (string.IsNullOrWhiteSpace(str))
+                return $"BOX {box + 1}";
+            return str;
+        }
+
+        public override void SetBoxName(int box, string value)
+        {
+            if (BoxName < 0)
+                return;
+
+            int ofs = BoxName + (box * BoxNameLength);
+            var str = Encoding.BigEndianUnicode.GetString(Data, ofs, BoxNameLength);
+            str = Util.TrimFromZero(str);
+            if (string.IsNullOrWhiteSpace(str))
+                return;
+
+            var data = Encoding.BigEndianUnicode.GetBytes(value.PadLeft(BoxNameLength / 2, '\0'));
+            SetData(data, ofs);
+        }
+
+        protected override PKM GetPKM(byte[] data)
+        {
+            if (data.Length != SIZE_STORED)
+                Array.Resize(ref data, SIZE_STORED);
+            return new BK4(data);
+        }
+
+        protected override byte[] DecryptPKM(byte[] data) => data;
+
+        protected override void SetDex(PKM pkm) { /* There's no PokéDex */ }
+
+        protected override void SetPKM(PKM pkm)
+        {
+            var pk4 = (BK4)pkm;
+            // Apply to this Save File
+            DateTime Date = DateTime.Now;
+            if (pk4.Trade(OT, TID, SID, Gender, Date.Day, Date.Month, Date.Year))
+                pkm.RefreshChecksum();
+        }
+
+        protected override void SetPartyValues(PKM pkm, bool isParty)
+        {
+            pkm.Sanity = (ushort)(isParty ? 0xC000 : 0x4000);
+        }
+
+        public static byte[] DecryptPBRSaveData(byte[] input)
+        {
+            byte[] output = new byte[input.Length];
+            for (int i = 0; i < SaveUtil.SIZE_G4BR; i += 0x1C0000)
+            {
+                var keys = GetKeys(input, i);
+                Array.Copy(input, i, output, i, 8);
+                GCSaveUtil.Decrypt(input, i + 8, i + 0x1C0000, keys, output);
+            }
+            return output;
+        }
+
+        private static byte[] EncryptPBRSaveData(byte[] input)
+        {
+            byte[] output = new byte[input.Length];
+            for (int i = 0; i < SaveUtil.SIZE_G4BR; i += 0x1C0000)
+            {
+                var keys = GetKeys(input, i);
+                Array.Copy(input, i, output, i, 8);
+                GCSaveUtil.Encrypt(input, i + 8, i + 0x1C0000, keys, output);
+            }
+            return output;
+        }
+
+        private static ushort[] GetKeys(byte[] input, int ofs)
+        {
+            ushort[] keys = new ushort[4];
+            for (int i = 0; i < keys.Length; i++)
+                keys[i] = BigEndian.ToUInt16(input, ofs + (i * 2));
+            return keys;
+        }
+
+        public static bool VerifyChecksum(byte[] input, int offset, int len, int checksum_offset)
+        {
+            uint[] storedChecksums = new uint[16];
+            for (int i = 0; i < storedChecksums.Length; i++)
+            {
+                storedChecksums[i] = BigEndian.ToUInt32(input, checksum_offset + (i * 4));
+                BitConverter.GetBytes(0u).CopyTo(input, checksum_offset + (i * 4));
+            }
+
+            uint[] checksums = new uint[16];
+
+            for (int i = 0; i < len; i += 2)
+            {
+                uint val = BigEndian.ToUInt16(input, offset + i);
+                for (int j = 0; j < 16; j++)
+                {
+                    checksums[j] += ((val >> j) & 1);
+                }
+            }
+
+            for (int i = 0; i < storedChecksums.Length; i++)
+            {
+                BigEndian.GetBytes(storedChecksums[i]).CopyTo(input, checksum_offset + (i * 4));
+            }
+
+            return checksums.SequenceEqual(storedChecksums);
+        }
+
+        private static void SetChecksum(byte[] input, int offset, int len, int checksum_offset)
+        {
+            uint[] storedChecksums = new uint[16];
+            for (int i = 0; i < storedChecksums.Length; i++)
+            {
+                storedChecksums[i] = BigEndian.ToUInt32(input, checksum_offset + (i * 4));
+                BitConverter.GetBytes(0u).CopyTo(input, checksum_offset + (i * 4));
+            }
+
+            uint[] checksums = new uint[16];
+
+            for (int i = 0; i < len; i += 2)
+            {
+                uint val = BigEndian.ToUInt16(input, offset + i);
+                for (int j = 0; j < 16; j++)
+                    checksums[j] += ((val >> j) & 1);
+            }
+
+            for (int i = 0; i < checksums.Length; i++)
+            {
+                BigEndian.GetBytes(checksums[i]).CopyTo(input, checksum_offset + (i * 4));
+            }
+        }
+
+        public override string GetString(byte[] data, int offset, int length) => StringConverter4.GetBEString4(data, offset, length);
+
+        public override byte[] SetString(string value, int maxLength, int PadToSize = 0, ushort PadWith = 0)
+        {
+            if (PadToSize == 0)
+                PadToSize = maxLength + 1;
+            return StringConverter4.SetBEString4(value, maxLength, PadToSize, PadWith);
         }
     }
-
-    public override string GetString(ReadOnlySpan<byte> data) => StringConverter4GC.GetStringUnicode(data);
-
-    public override int SetString(Span<byte> destBuffer, ReadOnlySpan<char> value, int maxLength, StringConverterOption option) => StringConverter4GC.SetStringUnicode(value, destBuffer, maxLength, option);
 }

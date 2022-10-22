@@ -1,28 +1,23 @@
 using System.ComponentModel;
 
-namespace PKHeX.Core;
-
-/// <summary>
-/// Base class for a savegame data reader.
-/// </summary>
-public abstract class SaveBlock<T> : IDataIndirect where T : SaveFile
+namespace PKHeX.Core
 {
-    protected readonly T SAV;
-
-    [Browsable(false)] public byte[] Data { get; }
-    [Browsable(false)] public int Offset { get; protected init; }
-
-    protected SaveBlock(T sav) : this(sav, sav.Data) { }
-
-    protected SaveBlock(T sav, byte[] data)
+    /// <summary>
+    /// Base class for a savegame data reader.
+    /// </summary>
+    public abstract class SaveBlock
     {
-        SAV = sav;
-        Data = data;
-    }
-}
+        [Browsable(false)]
+        public int Offset { get; protected set; }
 
-public interface IDataIndirect
-{
-    int Offset { get; }
-    byte[] Data { get; }
+        public readonly byte[] Data;
+        protected readonly SaveFile SAV;
+        protected SaveBlock(SaveFile sav) => Data = (SAV = sav).Data;
+
+        protected SaveBlock(SaveFile sav, byte[] data)
+        {
+            SAV = sav;
+            Data = data;
+        }
+    }
 }

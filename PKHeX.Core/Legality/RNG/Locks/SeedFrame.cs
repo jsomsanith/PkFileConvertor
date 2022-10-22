@@ -1,6 +1,17 @@
-﻿namespace PKHeX.Core;
+﻿namespace PKHeX.Core
+{
+    /// <summary>
+    /// Message Passing for frame results.
+    /// </summary>
+    internal readonly struct SeedFrame
+    {
+        public readonly uint PID;
+        public readonly int FrameID;
 
-/// <summary>
-/// Message Passing for frame results.
-/// </summary>
-internal readonly record struct SeedFrame(uint PID, int FrameID);
+        internal SeedFrame(uint pid, int frame)
+        {
+            PID = pid;
+            FrameID = frame;
+        }
+    }
+}

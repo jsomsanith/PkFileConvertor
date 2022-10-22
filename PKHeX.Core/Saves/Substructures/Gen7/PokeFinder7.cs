@@ -1,58 +1,59 @@
 ﻿using System;
-using static System.Buffers.Binary.BinaryPrimitives;
 
-namespace PKHeX.Core;
-
-public sealed class PokeFinder7 : SaveBlock<SAV7>
+namespace PKHeX.Core
 {
-    public PokeFinder7(SAV7 sav, int offset) : base(sav) => Offset = offset;
-
-    public ushort CameraVersion
+    public sealed class PokeFinder7 : SaveBlock
     {
-        get => ReadUInt16LittleEndian(Data.AsSpan(Offset + 0x00));
-        set => WriteUInt16LittleEndian(Data.AsSpan(Offset + 0x00), value);
-    }
+        public PokeFinder7(SAV7SM sav, int offset) : base(sav) => Offset = offset;
+        public PokeFinder7(SAV7USUM sav, int offset) : base(sav) => Offset = offset;
 
-    public bool GyroFlag
-    {
-        get => ReadUInt16LittleEndian(Data.AsSpan(Offset + 0x02)) == 1;
-        set => WriteUInt16LittleEndian(Data.AsSpan(Offset + 0x02), (ushort)(value ? 1 : 0));
-    }
-
-    public uint SnapCount
-    {
-        get => ReadUInt32LittleEndian(Data.AsSpan(Offset + 0x04));
-        set
+        public ushort CameraVersion
         {
-            if (value > 9999999) // Top bound is unchecked, check anyway
-                value = 9999999;
-            WriteUInt32LittleEndian(Data.AsSpan(Offset + 0x04), value);
+            get => BitConverter.ToUInt16(Data, Offset + 0x00);
+            set => BitConverter.GetBytes(value).CopyTo(Data, Offset + 0x00);
         }
-    }
 
-    public uint ThumbsTotalValue
-    {
-        get => ReadUInt32LittleEndian(Data.AsSpan(Offset + 0x0C));
-        set => WriteUInt32LittleEndian(Data.AsSpan(Offset + 0x0C), value);
-    }
-
-    public uint ThumbsHighValue
-    {
-        get => ReadUInt32LittleEndian(Data.AsSpan(Offset + 0x10));
-        set
+        public bool GyroFlag
         {
-            if (value > 9_999_999)
-                value = 9_999_999;
-            WriteUInt32LittleEndian(Data.AsSpan(Offset + 0x10), value);
-
-            if (value > ThumbsTotalValue)
-                ThumbsTotalValue = value;
+            get => BitConverter.ToUInt16(Data, Offset + 0x02) == 1;
+            set => BitConverter.GetBytes((ushort)(value ? 1 : 0)).CopyTo(Data, Offset + 0x02);
         }
-    }
 
-    public ushort TutorialFlags
-    {
-        get => ReadUInt16LittleEndian(Data.AsSpan(Offset + 0x14));
-        set => WriteUInt16LittleEndian(Data.AsSpan(Offset + 0x14), value);
+        public uint SnapCount
+        {
+            get => BitConverter.ToUInt32(Data, Offset + 0x04);
+            set
+            {
+                if (value > 9999999) // Top bound is unchecked, check anyway
+                    value = 9999999;
+                BitConverter.GetBytes(value).CopyTo(Data, Offset + 0x04);
+            }
+        }
+
+        public uint ThumbsTotalValue
+        {
+            get => BitConverter.ToUInt32(Data, Offset + 0x0C);
+            set => BitConverter.GetBytes(value).CopyTo(Data, Offset + 0x0C);
+        }
+
+        public uint ThumbsHighValue
+        {
+            get => BitConverter.ToUInt32(Data, Offset + 0x10);
+            set
+            {
+                if (value > 9_999_999)
+                    value = 9_999_999;
+                BitConverter.GetBytes(value).CopyTo(Data, Offset + 0x10);
+
+                if (value > ThumbsTotalValue)
+                    ThumbsTotalValue = value;
+            }
+        }
+
+        public ushort TutorialFlags
+        {
+            get => BitConverter.ToUInt16(Data, Offset + 0x14);
+            set => BitConverter.GetBytes(value).CopyTo(Data, Offset + 0x14);
+        }
     }
 }

@@ -1,15 +1,16 @@
-﻿namespace PKHeX.Core;
-
-public enum BattleMode
+﻿namespace PKHeX.Core
 {
-    Link,
-    Maison,
-    MaisonSuper,
-    BattleSpotFree,
-    BattleSpotRating,
-    BattleSpotSpecial,
-    UNUSED,
-    JP1,
-    JP2,
-    BAD,
+    public enum BattleMode
+    {
+        Link,
+        Maison,
+        MaisonSuper,
+        BattleSpotFree,
+        BattleSpotRating,
+        BattleSpotSpecial,
+        UNUSED,
+        JP1,
+        JP2,
+        BAD,
+    }
 }

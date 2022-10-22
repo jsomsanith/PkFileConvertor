@@ -1,49 +1,52 @@
-using static PKHeX.Core.LegalityCheckStrings;
+﻿using static PKHeX.Core.LegalityCheckStrings;
 
-namespace PKHeX.Core;
-
-/// <summary>
-/// Verifies the <see cref="PKM.HeldItem"/>.
-/// </summary>
-public sealed class ItemVerifier : Verifier
+namespace PKHeX.Core
 {
-    protected override CheckIdentifier Identifier => CheckIdentifier.HeldItem;
-
-    public override void Verify(LegalityAnalysis data)
+    /// <summary>
+    /// Verifies the <see cref="PKM.HeldItem"/>.
+    /// </summary>
+    public sealed class ItemVerifier : Verifier
     {
-        var pk = data.Entity;
-        var item = pk.HeldItem;
-        if (pk.IsEgg && item != 0)
-            data.AddLine(GetInvalid(LItemEgg));
+        protected override CheckIdentifier Identifier => CheckIdentifier.HeldItem;
 
-        if (!ItemRestrictions.IsHeldItemAllowed(item, context: pk.Context))
+        public override void Verify(LegalityAnalysis data)
         {
-            data.AddLine(GetInvalid(LItemUnreleased));
-        }
-        else if (pk.Format == 3 && item == 175) // Enigma Berry
-        {
-            // A Pokémon holding this Berry cannot be traded to Pokémon Colosseum or Pokémon XD: Gale of Darkness, nor can it be stored in Pokémon Box Ruby & Sapphire.
-            if (pk is CK3 or XK3)
+            var pkm = data.pkm;
+            if (!ItemRestrictions.IsHeldItemAllowed(pkm))
                 data.AddLine(GetInvalid(LItemUnreleased));
-            else
+
+            if (pkm.Format == 3 && pkm.HeldItem == 175) // Enigma Berry
                 VerifyEReaderBerry(data);
+
+            if (pkm.IsEgg && pkm.HeldItem != 0)
+                data.AddLine(GetInvalid(LItemEgg));
+        }
+
+        private void VerifyEReaderBerry(LegalityAnalysis data)
+        {
+            if (Legal.EReaderBerryIsEnigma) // no E-Reader berry data provided, can't hold berry.
+            {
+                data.AddLine(GetInvalid(LItemUnreleased));
+                return;
+            }
+
+            var matchUSA = Legal.EReaderBerriesNames_USA.Contains(Legal.EReaderBerryName);
+            var matchJP = Legal.EReaderBerriesNames_JP.Contains(Legal.EReaderBerryName);
+            if (!matchJP && !matchUSA) // Does not match any released E-Reader berry
+            {
+                data.AddLine(GetInvalid(LEReaderInvalid));
+                return;
+            }
+            if (ParseSettings.ActiveTrainer.Language <= 0)
+                return;
+
+            bool jp = ParseSettings.ActiveTrainer.Language == 1;
+            if (matchJP == jp)
+                return; // matches
+
+            // E-Reader is region locked
+            var msg = matchUSA ? LEReaderAmerica : LEReaderJapan;
+            data.AddLine(GetInvalid(msg));
         }
     }
-
-    private void VerifyEReaderBerry(LegalityAnalysis data)
-    {
-        var status = EReaderBerrySettings.GetStatus();
-        var chk = GetEReaderCheckResult(status);
-        if (chk != null)
-            data.AddLine(chk);
-    }
-
-    private CheckResult? GetEReaderCheckResult(EReaderBerryMatch status) => status switch
-    {
-        EReaderBerryMatch.NoMatch => GetInvalid(LEReaderInvalid),
-        EReaderBerryMatch.NoData => GetInvalid(LItemUnreleased),
-        EReaderBerryMatch.InvalidUSA => GetInvalid(LEReaderAmerica),
-        EReaderBerryMatch.InvalidJPN => GetInvalid(LEReaderJapan),
-        _ => null,
-    };
 }

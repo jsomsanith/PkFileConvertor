@@ -1,81 +1,86 @@
 ﻿using System;
-using static System.Buffers.Binary.BinaryPrimitives;
+using System.Text;
 
-namespace PKHeX.Core;
-
-public sealed class JoinFesta7 : SaveBlock<SAV7>
+namespace PKHeX.Core
 {
-    public JoinFesta7(SAV7SM sav, int offset) : base(sav) => Offset = offset;
-    public JoinFesta7(SAV7USUM sav, int offset) : base(sav) => Offset = offset;
-
-    public int FestaCoins
+    public sealed class JoinFesta7 : SaveBlock
     {
-        get => ReadInt32LittleEndian(Data.AsSpan(Offset + 0x508));
-        set
+        public JoinFesta7(SAV7SM sav, int offset) : base(sav) => Offset = offset;
+        public JoinFesta7(SAV7USUM sav, int offset) : base(sav) => Offset = offset;
+
+        public int FestaCoins
         {
-            if (value > 9999999)
-                value = 9999999;
-            WriteInt32LittleEndian(Data.AsSpan(Offset + 0x508), value);
-
-            TotalFestaCoins = SAV.GetRecord(038) + value; // UsedFestaCoins
-        }
-    }
-
-    public int TotalFestaCoins
-    {
-        get => ReadInt32LittleEndian(Data.AsSpan(Offset + 0x50C));
-        set
-        {
-            if (value > 9999999)
-                value = 9999999;
-            WriteInt32LittleEndian(Data.AsSpan(Offset + 0x50C), value);
-        }
-    }
-
-    private Span<byte> FestivalPlazaNameSpan => Data.AsSpan(Offset + 0x510, 0x2A);
-
-    public string FestivalPlazaName
-    {
-        get => StringConverter7.GetString(FestivalPlazaNameSpan);
-        set => StringConverter7.SetString(FestivalPlazaNameSpan, value.AsSpan(), 20, 0, StringConverterOption.ClearZero);
-    }
-
-    public ushort FestaRank { get => ReadUInt16LittleEndian(Data.AsSpan(Offset + 0x53A)); set => WriteUInt16LittleEndian(Data.AsSpan(Offset + 0x53A), value); }
-    public ushort GetFestaMessage(int index) => ReadUInt16LittleEndian(Data.AsSpan(Offset + (index * 2)));
-    public void SetFestaMessage(int index, ushort value) => WriteUInt16LittleEndian(Data.AsSpan(Offset + (index * 2)), value);
-    public bool GetFestaPhraseUnlocked(int index) => Data[Offset + 0x2A50 + index] != 0; //index: 0 to 105:commonPhrases, 106:Lv100!
-
-    public void SetFestaPhraseUnlocked(int index, bool value)
-    {
-        if (GetFestaPhraseUnlocked(index) != value)
-            Data[Offset + 0x2A50 + index] = value ? (byte)1 : (byte)0;
-    }
-
-    public byte GetFestPrizeReceived(int index) => Data[Offset + 0x53C + index];
-    public void SetFestaPrizeReceived(int index, byte value) => Data[Offset + 0x53C + index] = value;
-    private int FestaYear { get => ReadInt32LittleEndian(Data.AsSpan(Offset + 0x2F0)); set => WriteInt32LittleEndian(Data.AsSpan(Offset + 0x2F0), value); }
-    private int FestaMonth { get => ReadInt32LittleEndian(Data.AsSpan(Offset + 0x2F4)); set => WriteInt32LittleEndian(Data.AsSpan(Offset + 0x2F4), value); }
-    private int FestaDay { get => ReadInt32LittleEndian(Data.AsSpan(Offset + 0x2F8)); set => WriteInt32LittleEndian(Data.AsSpan(Offset + 0x2F8), value); }
-    private int FestaHour { get => ReadInt32LittleEndian(Data.AsSpan(Offset + 0x300)); set => WriteInt32LittleEndian(Data.AsSpan(Offset + 0x300), value); }
-    private int FestaMinute { get => ReadInt32LittleEndian(Data.AsSpan(Offset + 0x304)); set => WriteInt32LittleEndian(Data.AsSpan(Offset + 0x304), value); }
-    private int FestaSecond { get => ReadInt32LittleEndian(Data.AsSpan(Offset + 0x308)); set => WriteInt32LittleEndian(Data.AsSpan(Offset + 0x308), value); }
-
-    public DateTime? FestaDate
-    {
-        get => FestaYear >= 0 && FestaMonth > 0 && FestaDay > 0 && FestaHour >= 0 && FestaMinute >= 0 && FestaSecond >= 0 && DateUtil.IsDateValid(FestaYear, FestaMonth, FestaDay)
-            ? new DateTime(FestaYear, FestaMonth, FestaDay, FestaHour, FestaMinute, FestaSecond)
-            : null;
-        set
-        {
-            if (value.HasValue)
+            get => BitConverter.ToInt32(Data, Offset + 0x508);
+            set
             {
-                DateTime dt = value.Value;
-                FestaYear = dt.Year;
-                FestaMonth = dt.Month;
-                FestaDay = dt.Day;
-                FestaHour = dt.Hour;
-                FestaMinute = dt.Minute;
-                FestaSecond = dt.Second;
+                if (value > 9999999)
+                    value = 9999999;
+                BitConverter.GetBytes(value).CopyTo(Data, Offset + 0x508);
+
+                TotalFestaCoins = ((SAV7)SAV).GetRecord(038) + value; // UsedFestaCoins
+            }
+        }
+
+        private int TotalFestaCoins
+        {
+            get => BitConverter.ToInt32(Data, Offset + 0x50C);
+            set
+            {
+                if (value > 9999999)
+                    value = 9999999;
+                BitConverter.GetBytes(value).CopyTo(Data, Offset + 0x50C);
+            }
+        }
+
+        public string FestivalPlazaName
+        {
+            get => Util.TrimFromZero(Encoding.Unicode.GetString(Data, Offset + 0x510, 0x2A));
+            set
+            {
+                const int max = 20;
+                if (value.Length > max)
+                    value = value.Substring(0, max);
+                Encoding.Unicode.GetBytes(value.PadRight(value.Length + 1, '\0')).CopyTo(Data, Offset + 0x510);
+            }
+        }
+
+        public ushort FestaRank { get => BitConverter.ToUInt16(Data, Offset + 0x53A); set => BitConverter.GetBytes(value).CopyTo(Data, Offset + 0x53A); }
+        public ushort GetFestaMessage(int index) => BitConverter.ToUInt16(Data, Offset + (index * 2));
+        public void SetFestaMessage(int index, ushort value) => BitConverter.GetBytes(value).CopyTo(Data, Offset + (index * 2));
+        public bool GetFestaPhraseUnlocked(int index) => Data[Offset + 0x2A50 + index] != 0; //index: 0 to 105:commonPhrases, 106:Lv100!
+
+        public void SetFestaPhraseUnlocked(int index, bool value)
+        {
+            if (GetFestaPhraseUnlocked(index) != value)
+                Data[Offset + 0x2A50 + index] = (byte)(value ? 1 : 0);
+        }
+
+        public byte GetFestPrizeReceived(int index) => Data[Offset + 0x53C + index];
+        public void SetFestaPrizeReceived(int index, byte value) => Data[Offset + 0x53C + index] = value;
+        private int FestaYear { get => BitConverter.ToInt32(Data, Offset + 0x2F0); set => BitConverter.GetBytes(value).CopyTo(Data, Offset + 0x2F0); }
+        private int FestaMonth { get => BitConverter.ToInt32(Data, Offset + 0x2F4); set => BitConverter.GetBytes(value).CopyTo(Data, Offset + 0x2F4); }
+        private int FestaDay { get => BitConverter.ToInt32(Data, Offset + 0x2F8); set => BitConverter.GetBytes(value).CopyTo(Data, Offset + 0x2F8); }
+        private int FestaHour { get => BitConverter.ToInt32(Data, Offset + 0x300); set => BitConverter.GetBytes(value).CopyTo(Data, Offset + 0x300); }
+        private int FestaMinute { get => BitConverter.ToInt32(Data, Offset + 0x304); set => BitConverter.GetBytes(value).CopyTo(Data, Offset + 0x304); }
+        private int FestaSecond { get => BitConverter.ToInt32(Data, Offset + 0x308); set => BitConverter.GetBytes(value).CopyTo(Data, Offset + 0x308); }
+
+        public DateTime? FestaDate
+        {
+            get => FestaYear >= 0 && FestaMonth > 0 && FestaDay > 0 && FestaHour >= 0 && FestaMinute >= 0 && FestaSecond >= 0 && Util.IsDateValid(FestaYear, FestaMonth, FestaDay)
+                ? new DateTime(FestaYear, FestaMonth, FestaDay, FestaHour, FestaMinute, FestaSecond)
+                : (DateTime?)null;
+            set
+            {
+                if (value.HasValue)
+                {
+                    DateTime dt = value.Value;
+                    FestaYear = dt.Year;
+                    FestaMonth = dt.Month;
+                    FestaDay = dt.Day;
+                    FestaHour = dt.Hour;
+                    FestaMinute = dt.Minute;
+                    FestaSecond = dt.Second;
+                }
             }
         }
     }
