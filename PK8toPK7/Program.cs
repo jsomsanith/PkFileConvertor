@@ -65,7 +65,12 @@ namespace PK8toPK7
             new KeyValuePair<string, DateTime>("448 - JPN Ash Lucario ルカリオ - 5E21FF79491D", new DateTime(2022, 9, 16)),
 
             // PCNY
+            new KeyValuePair<string, DateTime>("150 ★ - PCNYc Mewtwo - 6593A68B5B40", new DateTime(2002, 9, 27)),
+            new KeyValuePair<string, DateTime>("243 ★ - PCNYc Raikou - 8C531E01A1D5", new DateTime(2002, 11, 15)),
+            new KeyValuePair<string, DateTime>("244 ★ - PCNYc Entei - CFBA4C427DD1", new DateTime(2002, 11, 15)),
+            new KeyValuePair<string, DateTime>("245 ★ - PCNYc Suicune - C931D60170DF", new DateTime(2002, 11, 15)),
             new KeyValuePair<string, DateTime>("249 ★ - PCNYb Lugia - A2AC2360ED45", new DateTime(2002, 11, 15)),
+            new KeyValuePair<string, DateTime>("250 ★ - PCNYc Ho-Oh - 30AAF8F0704A", new DateTime(2002, 11, 15)),
             new KeyValuePair<string, DateTime>("359 - PCNYc 0461 Wish Absol - 1B60F7A9", new DateTime(2004, 7, 10)),
             new KeyValuePair<string, DateTime>("359 - PCNYc 0003 Spite Absol - 5990FB0A", new DateTime(2004, 7, 10)),
             new KeyValuePair<string, DateTime>("003 ★ - PCNYc Venusaur - 36AAF01376EC", new DateTime(2003, 2, 14)),
