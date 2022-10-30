@@ -17,6 +17,7 @@ namespace PK8toPK7
             new KeyValuePair<string, DateTime>("244 ★ - WINTER 2011 ENTEI - F8D51382179C", new DateTime(2011, 2, 14)),
             new KeyValuePair<string, DateTime>("245 ★ - WINTER 2011 SUICUNE - 4FB87AE975F0", new DateTime(2011, 2, 21)),
             new KeyValuePair<string, DateTime>("491 - TOYS R US Darkrai - 3FC882B2A4F7", new DateTime(2011, 11, 14)),
+            new KeyValuePair<string, DateTime>("384 - Popularity Poll Rayquaza - FF680290FEE3", new DateTime(2012, 2, 10)),
 
             // Ruby Sapphire Emerald
             new KeyValuePair<string, DateTime>("385 - WISH MAKER JIRACHI - 267A185242FB", new DateTime(2003, 12, 1)),
@@ -37,11 +38,13 @@ namespace PK8toPK7
             new KeyValuePair<string, DateTime>("658-01 - Special Demo Greninja - AE2800000021", new DateTime(2016, 10, 18)),
             new KeyValuePair<string, DateTime>("773 ★ - 2017 Gamestop Silvally - 35C33777AF56", new DateTime(2017, 11, 3)),
             new KeyValuePair<string, DateTime>("785 ★ - 7-11 Tapu Koko - F25778AC8F30", new DateTime(2017, 3, 17)),
-            new KeyValuePair<string, DateTime>("785 ★ - Tapu Koko - 1DA5D1968747", new DateTime(2019, 8, 18)),
+            new KeyValuePair<string, DateTime>("718 ★ - 2018 Legends Zygarde - 58EFC5558FFC", new DateTime(2018, 6, 2)),            new KeyValuePair<string, DateTime>("243 - 2018 Legends Raikou - 8955847C4493", new DateTime(2018, 4, 12)),            new KeyValuePair<string, DateTime>("244 - 2018 Legends Entei - CCE67A04E70F", new DateTime(2018, 4, 12)),            new KeyValuePair<string, DateTime>("249 - 2018 Legends Lugia - 007E42DFEB37", new DateTime(2018, 11, 4)),            new KeyValuePair<string, DateTime>("250 - 2018 Legends Ho-Oh - A12DB28F88F2", new DateTime(2018, 11, 5)),            new KeyValuePair<string, DateTime>("380 - 2018 Legends Latias - CBF4F5F629E6", new DateTime(2018, 9, 2)),            new KeyValuePair<string, DateTime>("381 - 2018 Legends Latios - 77EC5693A410", new DateTime(2018, 9, 2)),            new KeyValuePair<string, DateTime>("382 - 2018 Legends Kyogre - 8685CC92C839", new DateTime(2018, 8, 6)),            new KeyValuePair<string, DateTime>("383 - 2018 Legends Groudon - DAE2D14656CE", new DateTime(2018, 8, 6)),            new KeyValuePair<string, DateTime>("483 - 2018 Legends Dialga - D39FAF87D112", new DateTime(2018, 2, 4)),            new KeyValuePair<string, DateTime>("484 - 2018 Legends Palkia - C984A4792146", new DateTime(2018, 2, 4)),            new KeyValuePair<string, DateTime>("485 - 2018 Legends Heatran - 841689EF095D", new DateTime(2018, 3, 16)),            new KeyValuePair<string, DateTime>("486 - 2018 Legends Regigigas - CC5579D4E5F0", new DateTime(2018, 3, 16)),            new KeyValuePair<string, DateTime>("641 - 2018 Legends Tornadus - 1F05C2B15E66", new DateTime(2018, 7, 13)),            new KeyValuePair<string, DateTime>("642 - 2018 Legends Thundurus - E364676A1277", new DateTime(2018, 7, 13)),            new KeyValuePair<string, DateTime>("643 - 2018 Legends Reshiram - 2A7EE03D3FEF", new DateTime(2018, 10, 20)),            new KeyValuePair<string, DateTime>("644 - 2018 Legends Zekrom - DB17274465A8", new DateTime(2018, 10, 20)),            new KeyValuePair<string, DateTime>("716 - 2018 Legends Xerneas - 693F3DF259D8", new DateTime(2018, 5, 4)),            new KeyValuePair<string, DateTime>("717 - 2018 Legends Yveltal - BCAE4BF88CA6", new DateTime(2018, 5, 4)),
             new KeyValuePair<string, DateTime>("803 ★ - Gamestop Poipole - D7E80DE94AD8", new DateTime(2018, 9, 17)),
             new KeyValuePair<string, DateTime>("786 ★ - Tapu Lele - 0C68CAE924D4", new DateTime(2018, 12, 18)),
             new KeyValuePair<string, DateTime>("787 ★ - Tapu Bulu - 939634B925AA", new DateTime(2019, 3, 19)),
+            new KeyValuePair<string, DateTime>("785 ★ - Tapu Koko - 1DA5D1968747", new DateTime(2019, 8, 18)),
             new KeyValuePair<string, DateTime>("788 ★ - Tapu Fini - 0D94E7BC26ED", new DateTime(2019, 6, 11)),
+            new KeyValuePair<string, DateTime>("648 - 2018 Worlds Meloetta - DF6D7662E9A2", new DateTime(2018, 8, 24)),
 
             // SWSH
             new KeyValuePair<string, DateTime>("807 ★ - HOME Zeraora - 946C00000000", new DateTime(2020, 6, 30)),
@@ -80,6 +83,7 @@ namespace PK8toPK7
 
         static void Main(string[] args)
         {
+            LocalizeUtil.InitializeStrings("en");
             var path = @"/Users/jimmy.somsanith/Downloads";
             var files = Directory.EnumerateFiles(path, "*", 0);
 
@@ -157,26 +161,57 @@ namespace PK8toPK7
                     default:
                         continue;
                 }
-                
-                Console.WriteLine("PK8 Species: " + pk8.Species);
-                Console.WriteLine("PK8 ID: " + pk8.DisplayTID);
-                Console.WriteLine("PK8 OT: " + pk8.OT_Name);
-                Console.WriteLine("PK8 Shiny: " + pk8.IsShiny);
-                Console.WriteLine("PK8 Language: " + pk8.Language);
-                Console.WriteLine("PK8 valid: " + pk8.Valid);
+
+                //Console.WriteLine("PK8 Species: " + pk8.Species);
+                //Console.WriteLine("PK8 ID: " + pk8.DisplayTID);
+                //Console.WriteLine("PK8 OT: " + pk8.OT_Name);
+                //Console.WriteLine("PK8 TID: " + pk8.TID);
+                //Console.WriteLine("PK8 Shiny: " + pk8.IsShiny);
+                //Console.WriteLine("PK8 Language: " + pk8.Language);
+                //Console.WriteLine("PK8 valid: " + pk8.Valid);
+
+                foreach (PropertyDescriptor descriptor in TypeDescriptor.GetProperties(pk8))
+                {
+                    string name = descriptor.Name;
+                    object value = descriptor.GetValue(pk8);
+                    Console.WriteLine("{0}={1}", name, value);
+                }
 
                 if (pk8 != null)
                 {
                     fixDate(f, pk8);
-                    
+                    //fixCurrentHandler(pk8);
+                    //fixTID(pk8);
                     // Uncomment to make it shiny
                     //pk8.SetShiny();
+                    pk8.RefreshChecksum();
+
+                    LegalityAnalysis analysis = new LegalityAnalysis(pk8);
+                    File.WriteAllText(f.Replace(fi.Extension, ".report.txt"), analysis.Report(true));
                     File.WriteAllBytes(f.Replace(fi.Extension, ".pk8"), pk8.DecryptedPartyData);
                     //File.WriteAllBytes(f.Replace(fi.Extension, ".pk8"), pk8.DecryptedBoxData);
                 }
 
             }
 
+        }
+
+        private static void fixTID(PK8 pk8)
+        {
+            if(pk8.TID != pk8.DisplayTID)
+            {
+                Console.WriteLine("Trainer ID different from DisplayTID, keep as is");
+                return;
+            }
+            var TIDBeforeUpdate = pk8.TID;
+            pk8.TID = 52954;
+            pk8.SID = 9949;
+            Console.WriteLine("Updated TID: " + TIDBeforeUpdate + " --> " + pk8.TID);
+        }
+
+        private static void fixCurrentHandler(PK8 pk8)
+        {
+            pk8.CurrentHandler = 1;
         }
 
         private static void fixDate(string fileNameWithExtension, PK8 pk8)
