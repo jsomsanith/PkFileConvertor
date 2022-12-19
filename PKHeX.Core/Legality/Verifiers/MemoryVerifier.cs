@@ -30,6 +30,8 @@ public sealed class MemoryVerifier : Verifier
     {
         if (pk.BDSP || pk.LA)
             return !data.Info.EvoChainsAllGens.HasVisitedSWSH;
+        if (pk is PK9)
+            return true; // No memories.
         return false;
     }
 
@@ -195,7 +197,7 @@ public sealed class MemoryVerifier : Verifier
                 VerifyOTMemoryIs(data, g.OT_Memory, g.OT_Intensity, g.OT_TextVar, g.OT_Feeling);
                 return;
 
-            case IMemoryOT t and not MysteryGift: // Ignore Mystery Gift cases (covered above)
+            case IMemoryOTReadOnly t and not MysteryGift: // Ignore Mystery Gift cases (covered above)
                 VerifyOTMemoryIs(data, t.OT_Memory, t.OT_Intensity, t.OT_TextVar, t.OT_Feeling);
                 return;
         }
@@ -319,7 +321,14 @@ public sealed class MemoryVerifier : Verifier
         {
             // No Memory
             case 0: // SWSH memory application has an off-by-one error: [0,99] + 1 <= chance --> don't apply
-                data.AddLine(Get(LMemoryMissingHT, memoryGen == Gen8 ? ParseSettings.Gen8MemoryMissingHT : Severity.Invalid));
+                var severity = memoryGen switch
+                {
+                    Gen8 when pk is not PK8 && !pk.SWSH => Severity.Valid,
+                    Gen8 => ParseSettings.Gen8MemoryMissingHT,
+                    _ => Severity.Invalid,
+                };
+                if (severity != Severity.Valid)
+                    data.AddLine(Get(LMemoryMissingHT, severity));
                 VerifyHTMemoryNone(data, mem);
                 return;
 

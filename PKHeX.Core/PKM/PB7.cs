@@ -94,7 +94,7 @@ public sealed class PB7 : G6PKM, IHyperTrain, IAwakened, IScaledSizeValue, IComb
 
     public override int Ability { get => Data[0x14]; set => Data[0x14] = (byte)value; }
     public override int AbilityNumber { get => Data[0x15] & 7; set => Data[0x15] = (byte)((Data[0x15] & ~7) | (value & 7)); }
-    public bool Favorite { get => (Data[0x15] & 8) != 0; set => Data[0x15] = (byte)((Data[0x15] & ~8) | ((value ? 1 : 0) << 3)); }
+    public bool IsFavorite { get => (Data[0x15] & 8) != 0; set => Data[0x15] = (byte)((Data[0x15] & ~8) | ((value ? 1 : 0) << 3)); }
     public override int MarkValue { get => ReadUInt16LittleEndian(Data.AsSpan(0x16)); set => WriteUInt16LittleEndian(Data.AsSpan(0x16), (ushort)value); }
 
     public override uint PID
@@ -505,9 +505,6 @@ public sealed class PB7 : G6PKM, IHyperTrain, IAwakened, IScaledSizeValue, IComb
         ResetWeight();
     }
 
-    // Casts are as per the game code; they may seem redundant but every bit of precision matters?
-    // This still doesn't precisely match :( -- just use a tolerance check when updating.
-    // If anyone can figure out how to get all precision to match, feel free to update :)
     public float HeightRatio => GetHeightRatio(HeightScalar);
     public float WeightRatio => GetWeightRatio(WeightScalar);
 
@@ -673,7 +670,7 @@ public sealed class PB7 : G6PKM, IHyperTrain, IAwakened, IScaledSizeValue, IComb
             HeightScalar = HeightScalar,
             WeightScalar = WeightScalar,
 
-            Favorite = Favorite,
+            IsFavorite = IsFavorite,
         };
 
         // Fix PP and Stats

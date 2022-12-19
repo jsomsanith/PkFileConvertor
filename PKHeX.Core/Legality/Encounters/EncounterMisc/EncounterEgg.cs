@@ -85,6 +85,16 @@ public sealed record EncounterEgg(ushort Species, byte Form, byte Level, int Gen
         {
             s.HeightScalar = PokeSizeUtil.GetRandomScalar();
             s.WeightScalar = PokeSizeUtil.GetRandomScalar();
+            if (pk is IScaledSize3 s3)
+                s3.Scale = PokeSizeUtil.GetRandomScalar();
+        }
+
+        if (pk is ITeraType tera)
+        {
+            var type = Tera9RNG.GetTeraTypeFromPersonal(Species, Form, Util.Rand.Rand64());
+            tera.TeraTypeOriginal = (MoveType)type;
+            if (criteria.TeraType != -1 && type != criteria.TeraType)
+                tera.SetTeraType(type); // sets the override type
         }
 
         return pk;
@@ -136,6 +146,9 @@ public sealed record EncounterEgg(ushort Species, byte Form, byte Level, int Gen
     {
         pk.Met_Level = EggStateLegality.GetEggLevelMet(Version, Generation);
         pk.Met_Location = Math.Max(0, EggStateLegality.GetEggHatchLocation(Version, Generation));
+
+        if (pk is IObedienceLevel l)
+            l.Obedience_Level = (byte)pk.Met_Level;
     }
 
     private void SetEncounterMoves(PKM pk, GameVersion version)

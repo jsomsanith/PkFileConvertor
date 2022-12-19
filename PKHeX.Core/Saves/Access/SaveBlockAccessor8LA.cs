@@ -1,10 +1,9 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 
 namespace PKHeX.Core;
 
 // ReSharper disable UnusedMember.Local
 #pragma warning disable IDE0051 // Remove unused private members
-#pragma warning disable RCS1213 // Remove unused member declaration.
 public sealed class SaveBlockAccessor8LA : SCBlockAccessor, ISaveBlock8LA
 {
     public override IReadOnlyList<SCBlock> BlockInfo { get; }
@@ -14,7 +13,7 @@ public sealed class SaveBlockAccessor8LA : SCBlockAccessor, ISaveBlock8LA
     public PokedexSave8a PokedexSave { get; }
     public BoxLayout8a BoxLayout { get; }
     public MyItem8a Items { get; }
-    public AdventureStart8a AdventureStart { get; }
+    public Epoch1970Value AdventureStart { get; }
     public Coordinates8a Coordinates { get; }
     public LastSaved8a LastSaved { get; }
     public PlayerFashion8a FashionPlayer { get; }
@@ -29,7 +28,7 @@ public sealed class SaveBlockAccessor8LA : SCBlockAccessor, ISaveBlock8LA
         PartyInfo = new Party8a(sav, GetBlock(KParty));
         MyStatus = new MyStatus8a(sav, GetBlock(KMyStatus));
         Items = new MyItem8a(sav, GetBlock(KItemRegular));
-        AdventureStart = new AdventureStart8a(sav, GetBlock(KAdventureStart));
+        AdventureStart = new Epoch1970Value(GetBlock(KAdventureStart));
         LastSaved = new LastSaved8a(sav, GetBlock(KLastSaved));
         Played = new PlayTime8a(sav, GetBlock(KPlayTime));
         Coordinates = new Coordinates8a(sav, GetBlock(KCoordinates));
@@ -68,6 +67,7 @@ public sealed class SaveBlockAccessor8LA : SCBlockAccessor, ISaveBlock8LA
     public const uint KMassOutbreak = 0x1E0F1BA3;
     public const uint KMassiveMassOutbreak = 0x7799EB86;
     private const uint KCaptureRecords = 0x6506EE96; // 1000 entries, 0x1C each
+    private const uint KPlayRecords = 0x549B6033; // 0x18 per entry, first 8 bytes always 01, u64 fnv hash of entry, last 8 bytes value.
     private const uint KOtherPlayerLostSatchels = 0x05E7EBEB;
     private const uint KMyLostSatchels = 0xC5D7112B;
     private const uint KNobleRematchRecords = 0xB9252862; // Best times of Noble rematches

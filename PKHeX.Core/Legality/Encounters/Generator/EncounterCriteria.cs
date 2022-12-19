@@ -41,6 +41,8 @@ public sealed record EncounterCriteria
     /// </summary>
     public bool ForceMinLevelRange { get; set; }
 
+    public sbyte TeraType { get; init; } = -1;
+
     // unused
     public int HPType { get; init; } = -1;
 
@@ -144,7 +146,9 @@ public sealed record EncounterCriteria
             return gender;
         if (!pkPersonalInfo.IsDualGender)
             return pkPersonalInfo.FixedGender();
-        if (Gender >= 0)
+        if (pkPersonalInfo.Genderless)
+            return 2;
+        if (Gender is 0 or 1)
             return Gender;
         return pkPersonalInfo.RandomGender();
     }

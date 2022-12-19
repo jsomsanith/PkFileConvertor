@@ -46,7 +46,7 @@ public static class BatchMods
         new ComplexSuggestion(PROP_RIBBONS, (_, value, info) => BatchModifications.SetSuggestedRibbons(info, value)),
         new ComplexSuggestion(nameof(PKM.Met_Location), (_, _, info) => BatchModifications.SetSuggestedMetData(info)),
         new ComplexSuggestion(nameof(PKM.CurrentLevel), (_, _, info) => BatchModifications.SetMinimumCurrentLevel(info)),
-        new ComplexSuggestion(PROP_CONTESTSTATS, p => p is IContestStatsMutable, (_, value, info) => BatchModifications.SetContestStats(info.Entity, info.Legality, value)),
+        new ComplexSuggestion(PROP_CONTESTSTATS, p => p is IContestStats, (_, value, info) => BatchModifications.SetContestStats(info.Entity, info.Legality, value)),
         new ComplexSuggestion(PROP_MOVEMASTERY, (_, value, info) => BatchModifications.SetSuggestedMasteryData(info, value)),
     };
 
@@ -63,8 +63,8 @@ public static class BatchMods
         new ComplexSet(nameof(PKM.PID), value => value == nameof(PKM.EncryptionConstant), (pk, _) => pk.PID = pk.EncryptionConstant),
 
         // Realign to Derived Value
-        new ComplexSet(nameof(PKM.Ability), value => value.StartsWith(CONST_SPECIAL), (pk, cmd) => pk.RefreshAbility(Convert.ToInt16(cmd.PropertyValue[1]) - 0x30)),
-        new ComplexSet(nameof(PKM.AbilityNumber), value => value.StartsWith(CONST_SPECIAL), (pk, cmd) => pk.RefreshAbility(Convert.ToInt16(cmd.PropertyValue[1]) - 0x30)),
+        new ComplexSet(nameof(PKM.Ability), value => value.Length == 2 && value.StartsWith(CONST_SPECIAL), (pk, cmd) => pk.RefreshAbility(Convert.ToInt16(cmd.PropertyValue[1]) - 0x30)),
+        new ComplexSet(nameof(PKM.AbilityNumber), value => value.Length == 2 && value.StartsWith(CONST_SPECIAL), (pk, cmd) => pk.RefreshAbility(Convert.ToInt16(cmd.PropertyValue[1]) - 0x30)),
 
         // Random
         new ComplexSet(nameof(PKM.EncryptionConstant), value => value == CONST_RAND, (pk, _) => pk.EncryptionConstant = Util.Rand32()),
@@ -79,6 +79,9 @@ public static class BatchMods
 
         new ComplexSet(nameof(PKM.Species), value => value == "0", (pk, _) => Array.Clear(pk.Data, 0, pk.Data.Length)),
         new ComplexSet(nameof(PKM.IsNicknamed), value => string.Equals(value, "false", StringComparison.OrdinalIgnoreCase), (pk, _) => pk.SetDefaultNickname()),
+
+        // Complicated
+        new ComplexSet(nameof(PKM.EncryptionConstant), value => value.StartsWith(CONST_RAND), (pk, cmd) => pk.EncryptionConstant = CommonEdits.GetComplicatedEC(pk, option: cmd.PropertyValue[^1])),
     };
 
     private static void SetRandomEVs(PKM pk)

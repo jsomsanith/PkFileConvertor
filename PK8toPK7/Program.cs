@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.IO;
+using PKConverter;
 
 namespace PK8toPK7
 {
@@ -87,6 +88,34 @@ namespace PK8toPK7
 
         static void Main(string[] args)
         {
+            //fixGen8Date(args);
+            buildGen9(args);
+        }
+
+        private static void buildGen9(string[] args)
+        {
+            LocalizeUtil.InitializeStrings("en");
+
+            PK9 ceruledge = Ceruledge.bestBuild();
+            print("/Users/jimmy.somsanith/Downloads/Ceruledge.best.details.txt", ceruledge);
+            checkLegality("/Users/jimmy.somsanith/Downloads/Ceruledge.best.report.txt", ceruledge);
+            File.WriteAllBytes("/Users/jimmy.somsanith/Downloads/Ceruledge.best.pk9", ceruledge.DecryptedPartyData);
+
+            PK9 ceruledgeTera = Ceruledge.teraBuild();
+            print("/Users/jimmy.somsanith/Downloads/Ceruledge.tera.details.txt", ceruledgeTera);
+            checkLegality("/Users/jimmy.somsanith/Downloads/Ceruledge.tera.report.txt", ceruledgeTera);
+            File.WriteAllBytes("/Users/jimmy.somsanith/Downloads/Ceruledge.tera.pk9", ceruledgeTera.DecryptedPartyData);
+
+            PK9 ceruledgeTera2 = Ceruledge.teraBuildForCinderace();
+            print("/Users/jimmy.somsanith/Downloads/Ceruledge.tera2.details.txt", ceruledgeTera2);
+            checkLegality("/Users/jimmy.somsanith/Downloads/Ceruledge.tera2.report.txt", ceruledgeTera2);
+            File.WriteAllBytes("/Users/jimmy.somsanith/Downloads/Ceruledge.tera2.pk9", ceruledgeTera2.DecryptedPartyData);
+        }
+
+
+
+        private static void fixGen8Date(string[] args)
+        {
             LocalizeUtil.InitializeStrings("en");
             var path = @"/Users/jimmy.somsanith/Downloads";
             var files = Directory.EnumerateFiles(path, "*", 0);
@@ -106,6 +135,7 @@ namespace PK8toPK7
                 PK6 pk6 = null;
                 PK7 pk7 = null;
                 PK8 pk8 = null;
+                PK9 pk9 = null;
 
                 switch(fi.Extension)
                 {
@@ -162,24 +192,26 @@ namespace PK8toPK7
                         pk8 = new PK8(data);
                         Console.WriteLine("Original met date: " + pk8.MetDate);
                         break;
+                    case ".pk9":
+                        pk9 = new PK9(data);
+                        break;
                     default:
                         continue;
                 }
 
-                Console.WriteLine("PK8 Species: " + pk8.Species);
-                Console.WriteLine("PK8 ID: " + pk8.DisplayTID);
-                Console.WriteLine("PK8 OT: " + pk8.OT_Name);
+                //Console.WriteLine("PK8 Species: " + pk8.Species);
+                //Console.WriteLine("PK8 ID: " + pk8.DisplayTID);
+                //Console.WriteLine("PK8 OT: " + pk8.OT_Name);
                 //Console.WriteLine("PK8 TID: " + pk8.TID);
-                Console.WriteLine("PK8 Shiny: " + pk8.IsShiny);
+                //Console.WriteLine("PK8 Shiny: " + pk8.IsShiny);
                 //Console.WriteLine("PK8 Language: " + pk8.Language);
                 //Console.WriteLine("PK8 valid: " + pk8.Valid);
 
-                //foreach (PropertyDescriptor descriptor in TypeDescriptor.GetProperties(pk8))
-                //{
-                //    string name = descriptor.Name;
-                //    object value = descriptor.GetValue(pk8);
-                //    Console.WriteLine("{0}={1}", name, value);
-                //}
+                if (pk9 != null)
+                {
+                    print(f.Replace(fi.Extension, ".details.txt"), pk9);
+                    checkLegality(f.Replace(fi.Extension, ".report.txt"), pk9);
+                }
 
                 if (pk8 != null)
                 {
@@ -245,6 +277,31 @@ namespace PK8toPK7
             Console.WriteLine(eventDateEntry);
             Console.WriteLine("Updated met date: " + dateBeforeUpdate + " --> " + pk8.MetDate);
 
+        }
+
+        private static void print(string fileName, PK9 pk9)
+        {
+            var details = "";
+            foreach (PropertyDescriptor descriptor in TypeDescriptor.GetProperties(pk9))
+            {
+                try
+                {
+                    string name = descriptor.Name;
+                    object value = descriptor.GetValue(pk9);
+                    //Console.WriteLine("{0}={1}", name, value);
+                    details += name + "=" + value + "\n";
+                }
+                catch (Exception e) { }
+            }
+
+            File.WriteAllText(fileName, details);
+
+        }
+
+        private static void checkLegality(string fileName, PK9 pk9)
+        {
+            LegalityAnalysis analysis = new LegalityAnalysis(pk9);
+            File.WriteAllText(fileName, analysis.Report(true));
         }
     }
 }

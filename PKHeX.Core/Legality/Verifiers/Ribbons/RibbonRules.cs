@@ -73,14 +73,25 @@ public static class RibbonRules
         return false;
     }
 
+    public static bool IsRibbonValidMasterRank(PKM pk, IEncounterTemplate enc, EvolutionHistory evos)
+    {
+        // Legends can compete in Ranked starting from Series 10.
+        // Past gen Pokemon can get the ribbon only if they've been reset.
+        if (evos.HasVisitedSWSH && IsRibbonValidMasterRankSWSH(pk, enc))
+            return true;
+
+        // Only Paldea natives can compete in Ranked. No Legends/Sub-Legends/Paradoxes as of Series 1.
+        if (evos.HasVisitedGen9 && IsRibbonValidMasterRankSV(pk))
+            return true;
+
+        return false;
+    }
+
     /// <summary>
     /// Checks if the entity participated in SW/SH ranked battles for the <see cref="IRibbonSetCommon8.RibbonMasterRank"/> ribbon.
     /// </summary>
-    public static bool IsRibbonValidMasterRankSWSH(PKM pk, IEncounterTemplate enc, EvolutionHistory evos)
+    private static bool IsRibbonValidMasterRankSWSH(PKM pk, IEncounterTemplate enc)
     {
-        if (!evos.HasVisitedSWSH)
-            return false;
-
         if (enc.Generation < 8 && pk is IBattleVersion { BattleVersion: 0 })
             return false;
 
@@ -88,14 +99,30 @@ public static class RibbonRules
         bool hasRealDate = enc.Version == GameVersion.GO || enc is IEncounterServerDate { IsDateRestricted: true };
         if (hasRealDate)
         {
+            // Ranked is still ongoing, but the use of Mythicals was restricted to Series 13 only.
             var met = pk.MetDate;
-            if (met > new DateTime(2022, 11, 1)) // Series 13 end date +1 day (wiggle room)
-                return false; // Ranked is done!
+            if (Legal.Mythicals.Contains(pk.Species) && met > new DateTime(2022, 11, 1))
+                return false;
         }
 
         // Series 13 rule-set was the first time Ranked Battles allowed the use of Mythical Pokémon.
         // All species that can exist in SW/SH can compete in ranked.
         return true;
+    }
+
+    private static bool IsRibbonValidMasterRankSV(ISpeciesForm pk)
+    {
+        var species = pk.Species;
+        if (Legal.Legends.Contains(species))
+            return false;
+        if (Legal.SubLegends.Contains(species))
+            return false;
+        if (species is >= (int)Species.GreatTusk and <= (int)Species.IronValiant)
+            return false;
+
+        var pt = PersonalTable.SV;
+        var pi = pt.GetFormEntry(species, pk.Form);
+        return pi.IsInDex; // no foreign species, such as Charmander, Wooper-0, and Meowth-2
     }
 
     /// <summary>
@@ -261,7 +288,7 @@ public static class RibbonRules
             return false;
 
         // Ribbon is awarded when the Pokémon is purified in the game of origin.
-        if (pk is IShadowPKM { IsShadow: true })
+        if (pk is IShadowCapture { IsShadow: true })
             return false;
 
         return true;
@@ -300,12 +327,18 @@ public static class RibbonRules
         return default;
     }
 
+    /// <summary>
+    /// Checks if the input evolution history could have participated in Generation 3 contests.
+    /// </summary>
     public static bool IsAllowedContest3(EvolutionHistory evos)
     {
         // Any species can enter contests in Gen3.
         return evos.HasVisitedGen3;
     }
 
+    /// <summary>
+    /// Checks if the input evolution history could have participated in Generation 4 contests.
+    /// </summary>
     public static bool IsAllowedContest4(EvolutionHistory evos)
     {
         if (!evos.HasVisitedGen4)
@@ -314,6 +347,9 @@ public static class RibbonRules
         return IsAllowedContest4(head.Species, head.Form);
     }
 
+    /// <summary>
+    /// Checks if the input species-form could have participated in Generation 4 contests.
+    /// </summary>
     public static bool IsAllowedContest4(ushort species, byte form) => species switch
     {
         // Disallow Unown and Ditto, and Spiky Pichu (cannot trade)
@@ -323,8 +359,14 @@ public static class RibbonRules
         _ => true,
     };
 
+    /// <summary>
+    /// Checks if the input species could have participated in any Battle Frontier trial.
+    /// </summary>
     public static bool IsAllowedBattleFrontier(ushort species) => !Legal.BattleFrontierBanlist.Contains(species);
 
+    /// <summary>
+    /// Checks if the input species could have participated in Generation 4's Battle Frontier.
+    /// </summary>
     public static bool IsAllowedBattleFrontier4(EvolutionHistory evos)
     {
         if (!evos.HasVisitedGen4)
@@ -333,9 +375,12 @@ public static class RibbonRules
         return IsAllowedBattleFrontier(head.Species, head.Form, 4);
     }
 
-    public static bool IsAllowedBattleFrontier(ushort species, byte form, int gen)
+    /// <summary>
+    /// Checks if the input species-form could have participated in a specific Battle Frontier trial.
+    /// </summary>
+    public static bool IsAllowedBattleFrontier(ushort species, byte form, int generation)
     {
-        if (gen == 4 && species == (int)Species.Pichu && form == 1) // spiky
+        if (generation == 4 && species == (int)Species.Pichu && form == 1) // spiky
             return false;
         return IsAllowedBattleFrontier(species);
     }

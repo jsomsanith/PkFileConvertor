@@ -25,6 +25,7 @@ public static class Breeding
         X, Y, OR, AS,
         SN, MN, US, UM,
         SW, SH, BD, SP,
+        SL, VL,
 
         GS,
     };
@@ -86,6 +87,7 @@ public static class Breeding
     {
         3 => SplitBreed_3,
         4 or 5 or 6 or 7 or 8 => SplitBreed,
+        // Gen9 does not have split-breed egg generation.
         _ => Array.Empty<ushort>(),
     };
 
@@ -102,16 +104,16 @@ public static class Breeding
     /// <remarks>Chained with the other 2 overloads for incremental checks with different parameters.</remarks>
     /// <param name="species">Current species</param>
     /// <param name="form">Current form</param>
-    /// <param name="generation">Generation of origin</param>
-    public static bool CanHatchAsEgg(ushort species, byte form, int generation)
+    /// <param name="context">Generation of origin</param>
+    public static bool CanHatchAsEgg(ushort species, byte form, EntityContext context)
     {
         if (form == 0)
             return true;
 
-        if (FormInfo.IsTotemForm(species, form, generation))
+        if (FormInfo.IsTotemForm(species, form, context))
             return false;
 
-        if (FormInfo.IsLordForm(species, form, generation))
+        if (FormInfo.IsLordForm(species, form, context))
             return false;
 
         return IsBreedableForm(species, form);
@@ -205,5 +207,12 @@ public static class Breeding
         (int)Regieleki, (int)Regidrago,
         (int)Glastrier, (int)Spectrier, (int)Calyrex,
         (int)Enamorus,
+
+        // Gen9
+        (int)Gimmighoul, (int)Gholdengo,
+        (int)GreatTusk, (int)BruteBonnet, (int)_980, (int)SandyShocks, (int)ScreamTail, (int)FlutterMane, (int)SlitherWing, (int)RoaringMoon,
+        (int)IronTreads, (int)_987, (int)IronMoth, (int)IronHands, (int)IronJugulis, (int)IronThorns, (int)IronBundle, (int)IronValiant,
+        (int)TingLu, (int)ChienPao, (int)WoChien, (int)ChiYu,
+        (int)Koraidon, (int)Miraidon,
     };
 }

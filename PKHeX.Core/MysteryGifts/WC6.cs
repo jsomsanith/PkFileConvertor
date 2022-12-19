@@ -6,7 +6,7 @@ namespace PKHeX.Core;
 /// <summary>
 /// Generation 6 Mystery Gift Template File
 /// </summary>
-public sealed class WC6 : DataMysteryGift, IRibbonSetEvent3, IRibbonSetEvent4, ILangNick, IContestStats, IContestStatsMutable, INature, IMemoryOT
+public sealed class WC6 : DataMysteryGift, IRibbonSetEvent3, IRibbonSetEvent4, ILangNick, IContestStats, INature, IMemoryOT
 {
     public const int Size = 0x108;
     public const uint EonTicketConst = 0x225D73C2;
@@ -539,7 +539,7 @@ public sealed class WC6 : DataMysteryGift, IRibbonSetEvent3, IRibbonSetEvent4, I
             if (EncryptionConstant != 0 && EncryptionConstant != pk.EncryptionConstant) return false;
             if (Language != 0 && Language != pk.Language) return false;
         }
-        if (Form != evo.Form && !FormInfo.IsFormChangeable(Species, Form, pk.Form, pk.Format))
+        if (Form != evo.Form && !FormInfo.IsFormChangeable(Species, Form, pk.Form, Context, pk.Context))
             return false;
 
         if (IsEgg)
@@ -569,7 +569,7 @@ public sealed class WC6 : DataMysteryGift, IRibbonSetEvent3, IRibbonSetEvent4, I
         if (Nature != -1 && pk.Nature != Nature) return false;
         if (Gender != 3 && Gender != pk.Gender) return false;
 
-        if (pk is IContestStats s && s.IsContestBelow(this))
+        if (pk is IContestStatsReadOnly s && s.IsContestBelow(this))
             return false;
 
         return true;

@@ -21,16 +21,21 @@ public static class EncounterEggGenerator
         if (!Breeding.CanHatchAsEgg(currentSpecies))
             yield break;
 
-        var currentForm = pk.Form;
-        if (!Breeding.CanHatchAsEgg(currentSpecies, currentForm, generation))
-            yield break; // can't originate from eggs
-
         // version is a true indicator for all generation 3-5 origins
         var ver = (GameVersion)pk.Version;
         if (!Breeding.CanGameGenerateEggs(ver))
-            yield break;
+        {
+            if (ver == 0 && pk is PK9)
+                ver = GameVersion.SL;
+            else
+                yield break;
+        }
 
         var context = ver.GetContext();
+        var currentForm = pk.Form;
+        if (!Breeding.CanHatchAsEgg(currentSpecies, currentForm, context))
+            yield break; // can't originate from eggs
+
         var lvl = EggStateLegality.GetEggLevel(generation);
         int max = GetMaxSpeciesOrigin(generation);
 
@@ -38,7 +43,7 @@ public static class EncounterEggGenerator
         if (species != 0 && species <= max)
         {
             // NOTE: THE SPLIT-BREED SECTION OF CODE SHOULD BE EXACTLY THE SAME AS THE BELOW SECTION
-            if (FormInfo.IsBattleOnlyForm(species, form, generation))
+            if (FormInfo.IsBattleOnlyForm(species, form, generation) || species is (int)Species.Rotom or (int)Species.Castform)
                 form = FormInfo.GetOutOfBattleForm(species, form, generation);
             if (Breeding.CanHatchAsEgg(species, form, ver))
             {

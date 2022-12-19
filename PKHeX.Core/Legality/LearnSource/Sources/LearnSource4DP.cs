@@ -25,15 +25,15 @@ public sealed class LearnSource4DP : ILearnSource, IEggSource
     public bool TryGetPersonal(ushort species, byte form, [NotNullWhen(true)] out PersonalInfo? pi)
     {
         pi = null;
-        if ((uint)species > MaxSpecies)
+        if (species > MaxSpecies)
             return false;
-        pi = Personal[species];
+        pi = Personal[species, form];
         return true;
     }
 
     public bool GetIsEggMove(ushort species, byte form, ushort move)
     {
-        if ((uint)species > MaxSpecies)
+        if (species > MaxSpecies)
             return false;
         var moves = EggMoves[species];
         return moves.GetHasEggMove(move);
@@ -41,7 +41,7 @@ public sealed class LearnSource4DP : ILearnSource, IEggSource
 
     public ReadOnlySpan<ushort> GetEggMoves(ushort species, byte form)
     {
-        if ((uint)species > MaxSpecies)
+        if (species > MaxSpecies)
             return ReadOnlySpan<ushort>.Empty;
         return EggMoves[species].Moves;
     }

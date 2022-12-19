@@ -88,8 +88,8 @@ public abstract class SaveFile : ITrainerInfo, IGameValueLimit, IBoxDetailWallpa
 
     #region Stored PKM Limits
     public abstract IPersonalTable Personal { get; }
-    public abstract int OTLength { get; }
-    public abstract int NickLength { get; }
+    public abstract int MaxStringLengthOT { get; }
+    public abstract int MaxStringLengthNickname { get; }
     public abstract ushort MaxMoveID { get; }
     public abstract ushort MaxSpeciesID { get; }
     public abstract int MaxAbilityID { get; }
@@ -232,6 +232,7 @@ public abstract class SaveFile : ITrainerInfo, IGameValueLimit, IBoxDetailWallpa
             int ctr = 0;
             foreach (var exist in value.Where(pk => pk.Species != 0))
                 SetPartySlot(exist, PartyBuffer, GetPartyOffset(ctr++));
+            PartyCount = ctr;
             for (int i = ctr; i < 6; i++)
                 SetPartySlot(BlankPKM, PartyBuffer, GetPartyOffset(i));
         }
@@ -534,7 +535,7 @@ public abstract class SaveFile : ITrainerInfo, IGameValueLimit, IBoxDetailWallpa
     public int NextOpenBoxSlot(int lastKnownOccupied = -1)
     {
         var storage = BoxBuffer.AsSpan();
-        int count = BoxSlotCount * BoxCount;
+        int count = SlotCount;
         for (int i = lastKnownOccupied + 1; i < count; i++)
         {
             int offset = GetBoxSlotOffset(i);

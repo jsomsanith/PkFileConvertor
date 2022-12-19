@@ -288,13 +288,21 @@ public sealed class PK4 : G4PKM
     {
         BK4 bk4 = ConvertTo<BK4>();
 
-        // Enforce DP content only (no PtHGSS)
-        if (Form != 0 && !PersonalTable.DP[Species].HasForms && Species != 201)
-            bk4.Form = 0;
-        if (HeldItem > Legal.MaxItemID_4_DP)
-            bk4.HeldItem = 0;
+        StripPtHGSSContent(bk4);
         bk4.RefreshChecksum();
         return bk4;
+    }
+
+    public RK4 ConvertToRK4()
+    {
+        byte[] data = Data.AsSpan(0, PokeCrypto.SIZE_4RSTORED).ToArray();
+        for (int i = PokeCrypto.SIZE_4STORED; i < PokeCrypto.SIZE_4RSTORED; i++)
+            data[i] = 0;
+
+        var rk4 = new RK4(data) { OwnershipType = RanchOwnershipType.Hayley };
+
+        rk4.RefreshChecksum();
+        return rk4;
     }
 
     public PK5 ConvertToPK5()

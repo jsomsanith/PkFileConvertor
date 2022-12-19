@@ -10,8 +10,14 @@
   </ItemGroup>
 
   <ItemGroup>
+    <None Remove="pokemons\" />
+  </ItemGroup>
+  <ItemGroup>
     <None Update="test.tt">
       <Generator>TextTemplatingFileGenerator</Generator>
     </None>
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="pokemons\" />
   </ItemGroup>
 </Project>

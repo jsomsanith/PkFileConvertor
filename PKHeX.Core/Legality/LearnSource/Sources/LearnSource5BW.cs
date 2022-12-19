@@ -25,13 +25,13 @@ public sealed class LearnSource5BW : ILearnSource, IEggSource
         pi = null;
         if (!Personal.IsPresentInGame(species, form))
             return false;
-        pi = Personal[species];
+        pi = Personal[species, form];
         return true;
     }
 
     public bool GetIsEggMove(ushort species, byte form, ushort move)
     {
-        if ((uint)species > MaxSpecies)
+        if (species > MaxSpecies)
             return false;
         var moves = EggMoves[species];
         return moves.GetHasEggMove(move);
@@ -39,7 +39,7 @@ public sealed class LearnSource5BW : ILearnSource, IEggSource
 
     public ReadOnlySpan<ushort> GetEggMoves(ushort species, byte form)
     {
-        if ((uint)species > MaxSpecies)
+        if (species > MaxSpecies)
             return ReadOnlySpan<ushort>.Empty;
         return EggMoves[species].Moves;
     }
