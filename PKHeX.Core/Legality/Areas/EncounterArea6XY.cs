@@ -1,67 +1,158 @@
-﻿using System.Collections.Generic;
-using System.Linq;
+using System;
+using System.Collections.Generic;
+using static System.Buffers.Binary.BinaryPrimitives;
 
-namespace PKHeX.Core
+namespace PKHeX.Core;
+
+/// <inheritdoc cref="EncounterArea" />
+/// <summary>
+/// <see cref="GameVersion.XY"/> encounter area
+/// </summary>
+public sealed record EncounterArea6XY : EncounterArea
 {
-    /// <inheritdoc />
-    /// <summary>
-    /// <see cref="GameVersion.XY"/> encounter area
-    /// </summary>
-    public sealed class EncounterArea6XY : EncounterArea32
+    public readonly EncounterSlot6XY[] Slots;
+
+    protected override IReadOnlyList<EncounterSlot> Raw => Slots;
+
+    public static EncounterArea6XY[] GetAreas(BinLinkerAccessor input, GameVersion game, EncounterArea6XY safari)
     {
-        protected override IEnumerable<EncounterSlot> GetFilteredSlots(PKM pkm, IEnumerable<EncounterSlot> slots, int minLevel)
+        int count = input.Length;
+        var result = new EncounterArea6XY[count + 1];
+        for (int i = 0; i < count; i++)
+            result[i] = new EncounterArea6XY(input[i], game);
+        result[^1] = safari;
+        return result;
+    }
+
+    public EncounterArea6XY() : base(GameVersion.XY)
+    {
+        Location = 148; // Friend Safari
+        Type = SlotType.FriendSafari;
+
+        Slots = LoadSafariSlots();
+    }
+
+    private EncounterArea6XY(ReadOnlySpan<byte> data, GameVersion game) : base(game)
+    {
+        Location = ReadInt16LittleEndian(data);
+        Type = (SlotType)data[2];
+
+        Slots = ReadSlots(data);
+    }
+
+    private EncounterSlot6XY[] LoadSafariSlots()
+    {
+        const int SpeciesFormSlots = 4;
+
+        // Single form species
+        Span<ushort> species = stackalloc ushort[]
         {
-            EncounterSlot? slotMax = null;
-            void CachePressureSlot(EncounterSlot s)
-            {
-                if (slotMax == null || s.LevelMax > slotMax.LevelMax)
-                    slotMax = s;
-            }
+            002, 005, 008, 012, 014, 016, 021, 025, 027, 035,
+            038, 039, 043, 044, 046, 049, 049, 051, 056, 058,
+            061, 063, 067, 077, 082, 083, 084, 087, 089, 091,
+            095, 096, 098, 101, 105, 112, 113, 114, 125, 126,
+            127, 130, 131, 132, 133, 148, 163, 165, 168, 175,
+            178, 184, 190, 191, 194, 195, 202, 203, 205, 206,
+            209, 213, 214, 215, 215, 216, 218, 219, 221, 222,
+            224, 225, 227, 231, 235, 236, 247, 262, 267, 268,
+            274, 281, 284, 286, 290, 294, 297, 299, 302, 303,
+            303, 307, 310, 313, 314, 317, 323, 326, 328, 332,
+            336, 342, 352, 353, 356, 357, 359, 361, 363, 372,
+            375, 400, 404, 415, 417, 419, 423, 426, 437, 442,
+            444, 447, 452, 454, 459, 506, 510, 511, 513, 515,
+            517, 520, 523, 525, 527, 530, 531, 536, 538, 539,
+            541, 544, 548, 551, 556, 557, 561, 569, 572, 575,
+            578, 581, 586, 587, 596, 597, 600, 608, 611, 614,
+            618, 619, 621, 623, 624, 627, 629, 636, 651, 654,
+            657, 660, 662, 662, 668, 673, 674, 677, 682, 684,
+            686, 689, 694, 701, 702, 702, 705, 707, 708, 710,
+            712, 714,
+        };
 
-            int species = pkm.Species;
-            int form = pkm.AltForm;
-            bool ShouldMatchSlotForm() => Legal.WildForms.Contains(species);
+        var slots = new EncounterSlot6XY[species.Length + SpeciesFormSlots];
+        int i = 0;
+        for (; i < species.Length; i++)
+            slots[i] = new EncounterSlot6XY(this, species[i], 0, 30, 30);
 
-            if (ShouldMatchSlotForm()) // match slot form
-            {
-                foreach (var slot in slots)
-                {
-                    if (slot.Form == form)
-                        yield return slot;
-                    CachePressureSlot(slot);
-                }
-            }
-            else
-            {
-                foreach (var slot in slots)
-                {
-                    yield return slot; // no form checking
-                    CachePressureSlot(slot);
-                }
-            }
+        // Floette has 3 separate forms (RBY)
+        slots[i++] = new EncounterSlot6XY(this, (int)Species.Floette, 0, 30, 30);
+        slots[i++] = new EncounterSlot6XY(this, (int)Species.Floette, 1, 30, 30);
+        slots[i++] = new EncounterSlot6XY(this, (int)Species.Floette, 3, 30, 30);
 
-            // Filter for Form Specific
-            // Pressure Slot
-            if (slotMax == null)
-                yield break;
+        // Region Random Vivillon
+        slots[i] = new EncounterSlot6XY(this, (int)Species.Vivillon, EncounterSlot.FormVivillon, 30, 30);
+        return slots;
+    }
 
-            if (ShouldMatchSlotForm()) // match slot form
-            {
-                if (slotMax.Form == form)
-                    yield return GetPressureSlot(slotMax, pkm);
-            }
-            else
-            {
-                yield return GetPressureSlot(slotMax, pkm);
-            }
+    private EncounterSlot6XY[] ReadSlots(ReadOnlySpan<byte> data)
+    {
+        const int size = 4;
+        int count = (data.Length - 4) / size;
+        var slots = new EncounterSlot6XY[count];
+        for (int i = 0; i < slots.Length; i++)
+        {
+            int offset = 4 + (size * i);
+            var entry = data.Slice(offset, size);
+            ushort species = ReadUInt16LittleEndian(entry);
+            byte form = (byte)(species >> 11);
+            species &= 0x3FF;
+            byte min = entry[2];
+            byte max = entry[3];
+            slots[i] = new EncounterSlot6XY(this, species, form, min, max);
         }
 
-        public static IEnumerable<EncounterSlot> GetValidFriendSafari(PKM pkm)
+        return slots;
+    }
+
+    public override IEnumerable<EncounterSlot> GetMatchingSlots(PKM pk, EvoCriteria[] chain)
+    {
+        foreach (var slot in Slots)
         {
-            if (!pkm.XY || pkm.Met_Location != 148 || pkm.Met_Level != 30 || pkm.Egg_Location != 0) // Friend Safari
-                return Enumerable.Empty<EncounterSlot>();
-            var vs = EvolutionChain.GetValidPreEvolutions(pkm).Where(d => d.Level >= 30);
-            return vs.SelectMany(z => Encounters6.FriendSafari[z.Species]);
+            foreach (var evo in chain)
+            {
+                if (slot.Species != evo.Species)
+                    continue;
+
+                if (!slot.IsLevelWithinRange(pk.Met_Level))
+                    break;
+
+                if (slot.Form != evo.Form && !slot.IsRandomUnspecificForm && slot.Species is not ((int)Species.Burmy or (int)Species.Furfrou))
+                {
+                    // Only slot that can be form-mismatched via Pressure is Flabébé
+                    if (slot.Species != (int)Species.Flabébé)
+                        break;
+
+                    var maxLevel = slot.LevelMax;
+                    if (!ExistsPressureSlot(evo, ref maxLevel))
+                        break;
+
+                    if (maxLevel != pk.Met_Level)
+                        break;
+
+                    yield return slot.CreatePressureFormCopy(evo.Form);
+                    break;
+                }
+
+                yield return slot;
+                break;
+            }
         }
+    }
+
+    private bool ExistsPressureSlot(EvoCriteria evo, ref byte level)
+    {
+        bool existsForm = false;
+        foreach (var z in Slots)
+        {
+            if (z.Species != evo.Species)
+                continue;
+            if (z.Form == evo.Form)
+                continue;
+            if (z.LevelMax < level)
+                continue;
+            level = z.LevelMax;
+            existsForm = true;
+        }
+        return existsForm;
     }
 }

@@ -33,6 +33,7 @@ namespace PK8toPK7
 
             // Diamond Pearl Platinium
             new KeyValuePair<string, DateTime>("149 - STRONGEST POKEMON DRAGONITE カイリュー - B7540E2CFBFC", new DateTime(2018, 1, 15)),
+            new KeyValuePair<string, DateTime>("350 ★ - VGC  2009 MILOTIC - DE242A0F0ED6", new DateTime(2009, 5, 9)),
 
             // Sun and Moon
             new KeyValuePair<string, DateTime>("658-01 - Special Demo Greninja - AE2800000021", new DateTime(2016, 10, 18)),
@@ -45,6 +46,9 @@ namespace PK8toPK7
             new KeyValuePair<string, DateTime>("785 ★ - Tapu Koko - 1DA5D1968747", new DateTime(2019, 8, 18)),
             new KeyValuePair<string, DateTime>("788 ★ - Tapu Fini - 0D94E7BC26ED", new DateTime(2019, 6, 11)),
             new KeyValuePair<string, DateTime>("648 - 2018 Worlds Meloetta - DF6D7662E9A2", new DateTime(2018, 8, 24)),
+
+            // Pokemon XD
+            new KeyValuePair<string, DateTime>("249 - XD001 Shadow Lugia - F73034146D90", new DateTime(2005, 12, 1)),
 
             // SWSH
             new KeyValuePair<string, DateTime>("807 ★ - HOME Zeraora - 946C00000000", new DateTime(2020, 6, 30)),
@@ -162,25 +166,26 @@ namespace PK8toPK7
                         continue;
                 }
 
-                //Console.WriteLine("PK8 Species: " + pk8.Species);
-                //Console.WriteLine("PK8 ID: " + pk8.DisplayTID);
-                //Console.WriteLine("PK8 OT: " + pk8.OT_Name);
+                Console.WriteLine("PK8 Species: " + pk8.Species);
+                Console.WriteLine("PK8 ID: " + pk8.DisplayTID);
+                Console.WriteLine("PK8 OT: " + pk8.OT_Name);
                 //Console.WriteLine("PK8 TID: " + pk8.TID);
-                //Console.WriteLine("PK8 Shiny: " + pk8.IsShiny);
+                Console.WriteLine("PK8 Shiny: " + pk8.IsShiny);
                 //Console.WriteLine("PK8 Language: " + pk8.Language);
                 //Console.WriteLine("PK8 valid: " + pk8.Valid);
 
-                foreach (PropertyDescriptor descriptor in TypeDescriptor.GetProperties(pk8))
-                {
-                    string name = descriptor.Name;
-                    object value = descriptor.GetValue(pk8);
-                    Console.WriteLine("{0}={1}", name, value);
-                }
+                //foreach (PropertyDescriptor descriptor in TypeDescriptor.GetProperties(pk8))
+                //{
+                //    string name = descriptor.Name;
+                //    object value = descriptor.GetValue(pk8);
+                //    Console.WriteLine("{0}={1}", name, value);
+                //}
 
                 if (pk8 != null)
                 {
                     fixDate(f, pk8);
-                    //fixCurrentHandler(pk8);
+                    fixCurrentHandler(pk8);
+                    //setOwnOT(pk8);
                     //fixTID(pk8);
                     // Uncomment to make it shiny
                     //pk8.SetShiny();
@@ -212,6 +217,15 @@ namespace PK8toPK7
         private static void fixCurrentHandler(PK8 pk8)
         {
             pk8.CurrentHandler = 1;
+            Console.WriteLine("Fix current handler");
+        }
+
+        private static void setOwnOT(PK8 pk8)
+        {
+            var previousOT = pk8.OT_Name;
+            pk8.OT_Name = "Jimmy";
+            Console.WriteLine("Set OT " + previousOT + " --> Jimmy");
+
         }
 
         private static void fixDate(string fileNameWithExtension, PK8 pk8)

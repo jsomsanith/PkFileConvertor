@@ -1,82 +1,91 @@
-namespace PKHeX.Core
+namespace PKHeX.Core;
+
+/// <summary>
+/// Minimal Trainer Information necessary for generating a <see cref="PKM"/>.
+/// </summary>
+public interface ITrainerInfo : ITrainerID
 {
-    /// <summary>
-    /// Minimal Trainer Information necessary for generating a <see cref="PKM"/>.
-    /// </summary>
-    public interface ITrainerInfo : ITrainerID
+    string OT { get; }
+    int Gender { get; }
+    int Game { get; }
+    int Language { get; }
+
+    int Generation { get; }
+    EntityContext Context { get; }
+}
+
+public static class TrainerInfoExtensions
+{
+    public static void ApplyTo(this ITrainerInfo info, PKM pk)
     {
-        string OT { get; }
-        int Gender { get; }
-        int Game { get; }
-        int Language { get; }
+        pk.OT_Name = info.OT;
+        pk.TID = info.TID;
+        pk.SID = pk.Format < 3 || pk.VC ? 0 : info.SID;
+        pk.OT_Gender = info.Gender;
+        pk.Language = info.Language;
+        pk.Version = info.Game;
 
-        int Country { get; }
-        int SubRegion { get; }
-        int ConsoleRegion { get; }
+        if (pk is not IRegionOrigin tr)
+            return;
 
-        int Generation { get; }
+        if (info is not IRegionOrigin o)
+            return;
+        tr.Country = o.Country;
+        tr.Region = o.Region;
+        tr.ConsoleRegion = o.ConsoleRegion;
     }
 
-    public static partial class Extensions
+    public static void ApplyHandlingTrainerInfo(this ITrainerInfo sav, PKM pk, bool force = false)
     {
-        public static void ApplyToPKM(this ITrainerInfo info, PKM pk)
-        {
-            pk.OT_Name = info.OT;
-            pk.TID = info.TID;
-            pk.SID = pk.Format < 3 || pk.VC ? 0 : info.SID;
-            pk.OT_Gender = info.Gender;
-            pk.Language = info.Language;
-            pk.Version = info.Game;
+        if (pk.Format == sav.Generation && !force)
+            return;
 
-            if (pk.Format >= 8 || pk is PB7)
-                return;
-            pk.Country = info.Country;
-            pk.Region = info.SubRegion;
-            pk.ConsoleRegion = info.ConsoleRegion;
+        pk.HT_Name = sav.OT;
+        pk.HT_Gender = sav.Gender;
+        pk.HT_Friendship = pk.OT_Friendship;
+        pk.CurrentHandler = 1;
+
+        if (pk is PK6 pk6 && sav is IRegionOrigin o)
+        {
+            pk6.Geo1_Country = o.Country;
+            pk6.Geo1_Region = o.Region;
+            pk6.SetTradeMemoryHT6(true);
         }
-
-        public static void ApplyHandlingTrainerInfo(this ITrainerInfo SAV, PKM pk, bool force = false)
+        else if (pk is PK8 pk8)
         {
-            if (pk.Format == SAV.Generation && !force)
-                return;
-
-            pk.HT_Name = SAV.OT;
-            pk.HT_Gender = SAV.Gender;
-            pk.HT_Friendship = pk.OT_Friendship;
-            pk.CurrentHandler = 1;
-
-            if (pk.Format == 6)
-            {
-                var g = (IGeoTrack) pk;
-                g.Geo1_Country = SAV.Country;
-                g.Geo1_Region = SAV.SubRegion;
-                ((PK6)pk).TradeMemory(true);
-            }
+            pk8.SetTradeMemoryHT8();
         }
+    }
 
-        public static bool IsFromTrainer(this ITrainerInfo tr, PKM pk)
-        {
-            if (tr.Game == (int)GameVersion.Any)
-                return true;
-
-            if (tr.TID != pk.TID)
-                return false;
-            if (tr.OT != pk.OT_Name)
-                return false;
-            if (pk.Format <= 2)
-                return false;
-
-            if (tr.SID != pk.SID)
-                return false;
-            if (pk.Format == 3)
-                return false;
-
-            if (tr.Gender != pk.OT_Gender)
-                return false;
-            if (tr.Game != pk.Version)
-                return false;
-
+    public static bool IsFromTrainer(this ITrainerInfo tr, PKM pk)
+    {
+        if (tr.Game == (int)GameVersion.Any)
             return true;
-        }
+
+        if (tr.TID != pk.TID)
+            return false;
+        if (tr.OT != pk.OT_Name)
+            return false;
+        if (pk.Format <= 2)
+            return false;
+
+        if (tr.SID != pk.SID)
+            return false;
+        if (pk.Format == 3)
+            return false;
+
+        if (tr.Gender != pk.OT_Gender)
+            return false;
+
+        return IsMatchVersion(tr, pk);
+    }
+
+    private static bool IsMatchVersion(ITrainerInfo tr, PKM pk)
+    {
+        if (tr.Game == pk.Version)
+            return true;
+        if (pk.GO_LGPE)
+            return tr.Game is (int)GameVersion.GP or (int)GameVersion.GE;
+        return false;
     }
 }

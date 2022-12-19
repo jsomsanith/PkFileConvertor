@@ -1,63 +1,91 @@
-﻿using System.Collections.Generic;
-using System.Linq;
+﻿using System;
+using System.Collections.Generic;
+using static System.Buffers.Binary.BinaryPrimitives;
 
-namespace PKHeX.Core
+namespace PKHeX.Core;
+
+/// <inheritdoc cref="EncounterArea" />
+/// <summary>
+/// <see cref="GameVersion.ORAS"/> encounter area
+/// </summary>
+public sealed record EncounterArea6AO : EncounterArea
 {
-    /// <inheritdoc />
-    /// <summary>
-    /// <see cref="GameVersion.ORAS"/> encounter area
-    /// </summary>
-    public sealed class EncounterArea6AO : EncounterArea32
+    public readonly EncounterSlot6AO[] Slots;
+
+    protected override IReadOnlyList<EncounterSlot> Raw => Slots;
+
+    public static EncounterArea6AO[] GetAreas(BinLinkerAccessor input, GameVersion game)
     {
-        private const int FluteBoostMin = 4; // White Flute decreases levels.
-        private const int FluteBoostMax = 4; // Black Flute increases levels.
-        private const int DexNavBoost = 30; // Maximum DexNav chain
+        var result = new EncounterArea6AO[input.Length];
+        for (int i = 0; i < result.Length; i++)
+            result[i] = new EncounterArea6AO(input[i], game);
+        return result;
+    }
 
-        protected override IEnumerable<EncounterSlot> GetMatchFromEvoLevel(PKM pkm, IEnumerable<EvoCriteria> vs, int minLevel)
+    private EncounterArea6AO(ReadOnlySpan<byte> data, GameVersion game) : base(game)
+    {
+        Location = ReadInt16LittleEndian(data);
+        Type = (SlotType)data[2];
+
+        Slots = ReadSlots(data);
+    }
+
+    private EncounterSlot6AO[] ReadSlots(ReadOnlySpan<byte> data)
+    {
+        const int size = 4;
+        int count = (data.Length - 4) / size;
+        var slots = new EncounterSlot6AO[count];
+        for (int i = 0; i < slots.Length; i++)
         {
-            var slots = Slots.Where(slot => vs.Any(evo => evo.Species == slot.Species && evo.Level >= (slot.LevelMin - FluteBoostMax)));
-
-            // note: it's probably possible to determine a reduced DexNav boost based on the flawless IV count (no flawless = not chained)
-            // if someone wants to implement that logic to have the below method return a calculated max DexNavBoost, send a pull request :)
-            static int getMaxLevelBoost(EncounterSlot s) => s.Type != SlotType.Rock_Smash ? DexNavBoost : FluteBoostMax; // DexNav encounters most likely
-
-            // Get slots where pokemon can exist with respect to level constraints
-            return slots.Where(s => s.IsLevelWithinRange(minLevel, minLevel, FluteBoostMin, getMaxLevelBoost(s)));
+            int offset = 4 + (size * i);
+            var entry = data.Slice(offset, size);
+            slots[i] = ReadSlot(entry);
         }
 
-        protected override IEnumerable<EncounterSlot> GetFilteredSlots(PKM pkm, IEnumerable<EncounterSlot> slots, int minLevel)
+        return slots;
+    }
+
+    private EncounterSlot6AO ReadSlot(ReadOnlySpan<byte> entry)
+    {
+        ushort species = ReadUInt16LittleEndian(entry);
+        byte form = (byte)(species >> 11);
+        species &= 0x3FF;
+        byte min = entry[2];
+        byte max = entry[3];
+        return new EncounterSlot6AO(this, species, form, min, max);
+    }
+
+    private const int FluteBoostMin = 4; // White Flute decreases levels.
+    private const int FluteBoostMax = 4; // Black Flute increases levels.
+    private const int DexNavBoost = 30; // Maximum DexNav chain
+
+    public override IEnumerable<EncounterSlot> GetMatchingSlots(PKM pk, EvoCriteria[] chain)
+    {
+        foreach (var slot in Slots)
         {
-            EncounterSlot? slotMax = null;
-            foreach (EncounterSlot s in slots)
+            foreach (var evo in chain)
             {
-                if (Legal.WildForms.Contains(pkm.Species) && s.Form != pkm.AltForm)
-                {
-                    CachePressureSlot(s);
+                if (slot.Species != evo.Species)
                     continue;
-                }
-                bool nav = s.Permissions.AllowDexNav && (pkm.RelearnMove1 != 0 || pkm.AbilityNumber == 4);
-                EncounterSlot slot = s.Clone();
-                slot.Permissions.DexNav = nav;
 
-                if (slot.LevelMin > minLevel)
-                    slot.Permissions.WhiteFlute = true;
-                if (slot.LevelMax + 1 <= minLevel && minLevel <= slot.LevelMax + FluteBoostMax)
-                    slot.Permissions.BlackFlute = true;
-                if (slot.LevelMax != minLevel && slot.Permissions.AllowDexNav)
-                    slot.Permissions.DexNav = true;
-                yield return slot;
+                var boostMax = Type != SlotType.Rock_Smash ? DexNavBoost : FluteBoostMax;
+                const int boostMin = FluteBoostMin;
+                if (!slot.IsLevelWithinRange(pk.Met_Level, boostMin, boostMax))
+                    break;
 
-                CachePressureSlot(slot);
+                if (slot.Form != evo.Form && !slot.IsRandomUnspecificForm)
+                    break;
+
+                // Track some metadata about how this slot was matched.
+                var clone = slot with
+                {
+                    WhiteFlute = evo.LevelMin < slot.LevelMin,
+                    BlackFlute = evo.LevelMin > slot.LevelMax && evo.LevelMin <= slot.LevelMax + FluteBoostMax,
+                    DexNav = slot.CanDexNav && (evo.LevelMin != slot.LevelMax || pk.RelearnMove1 != 0 || pk.AbilityNumber == 4),
+                };
+                yield return clone;
+                break;
             }
-
-            void CachePressureSlot(EncounterSlot s)
-            {
-                if (slotMax != null && s.LevelMax > slotMax.LevelMax)
-                    slotMax = s;
-            }
-            // Pressure Slot
-            if (slotMax != null)
-                yield return GetPressureSlot(slotMax, pkm);
         }
     }
 }
