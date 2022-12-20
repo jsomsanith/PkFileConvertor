@@ -110,6 +110,21 @@ namespace PK8toPK7
             print("/Users/jimmy.somsanith/Downloads/Ceruledge.tera2.details.txt", ceruledgeTera2);
             checkLegality("/Users/jimmy.somsanith/Downloads/Ceruledge.tera2.report.txt", ceruledgeTera2);
             File.WriteAllBytes("/Users/jimmy.somsanith/Downloads/Ceruledge.tera2.pk9", ceruledgeTera2.DecryptedPartyData);
+
+            PK9 ironValiant = IronValiant.bestBuild();
+            print("/Users/jimmy.somsanith/Downloads/IronValiant.best.details.txt", ironValiant);
+            checkLegality("/Users/jimmy.somsanith/Downloads/IronValiant.best.report.txt", ironValiant);
+            File.WriteAllBytes("/Users/jimmy.somsanith/Downloads/IronValiant.best.pk9", ironValiant.DecryptedPartyData);
+
+            PK9 ironValianTera = IronValiant.bestBuild();
+            print("/Users/jimmy.somsanith/Downloads/IronValiant.tera.details.txt", ironValianTera);
+            checkLegality("/Users/jimmy.somsanith/Downloads/IronValiant.tera.report.txt", ironValianTera);
+            File.WriteAllBytes("/Users/jimmy.somsanith/Downloads/IronValiant.tera.pk9", ironValianTera.DecryptedPartyData);
+
+            PK9 ironValiantTeraSupport = IronValiant.bestBuild();
+            print("/Users/jimmy.somsanith/Downloads/IronValiant.teraSupport.details.txt", ironValiantTeraSupport);
+            checkLegality("/Users/jimmy.somsanith/Downloads/IronValiant.best.report.txt", ironValiantTeraSupport);
+            File.WriteAllBytes("/Users/jimmy.somsanith/Downloads/IronValiant.teraSupport.pk9", ironValiantTeraSupport.DecryptedPartyData);
         }
 
 
