@@ -18,12 +18,10 @@ namespace PKConverter
             newPokemon.SetAbility((int)Ability.QuarkDrive);
             newPokemon.Nature = (int)Nature.Jolly;
             newPokemon.SetNature(newPokemon.Nature);
-
-            newPokemon.SetEVs(new int[] { 0, 252, 0, 252, 0, 4 });
-
             newPokemon.HeldItem = 0x0758; // Booster energy
-            newPokemon.SetMoves(new Moveset((ushort)Move.SwordsDance, (ushort)Move.PsychoCut, (ushort)Move.CloseCombat, (ushort)Move.SpiritBreak));
 
+            Base.maxStats(newPokemon, new int[] { 0, 252, 0, 252, 0, 4 });
+            Base.setMoves(newPokemon, new ushort[] { (ushort)Move.SwordsDance, (ushort)Move.PsychoCut, (ushort)Move.CloseCombat, (ushort)Move.SpiritBreak });
             Base.sanitize(newPokemon);
 
             return newPokemon;
@@ -38,12 +36,10 @@ namespace PKConverter
             newPokemon.SetAbility((int)Ability.QuarkDrive);
             newPokemon.Nature = (int)Nature.Adamant;
             newPokemon.SetNature(newPokemon.Nature);
-
-            newPokemon.SetEVs(new int[] { 252, 252, 0, 0, 0, 4 });
-
             newPokemon.HeldItem = 0x0758; // Booster energy
-            newPokemon.SetMoves(new Moveset((ushort)Move.SwordsDance, (ushort)Move.Liquidation, (ushort)Move.SpiritBreak, (ushort)Move.DrainPunch));
 
+            Base.maxStats(newPokemon, new int[] { 252, 252, 0, 0, 0, 4 });
+            Base.setMoves(newPokemon, new ushort[] { (ushort)Move.SwordsDance, (ushort)Move.Liquidation, (ushort)Move.SpiritBreak, (ushort)Move.DrainPunch });
             Base.sanitize(newPokemon);
 
             return newPokemon;
@@ -58,12 +54,10 @@ namespace PKConverter
             newPokemon.SetAbility((int)Ability.QuarkDrive);
             newPokemon.Nature = (int)Nature.Timid;
             newPokemon.SetNature(newPokemon.Nature);
-
-            newPokemon.SetEVs(new int[] { 252, 0, 0, 252, 6, 0 });
-
             newPokemon.HeldItem = 0x010D; // Light Clay - https://projectpokemon.org/home/docs/gen-4/list-of-items-by-index-number-r23/
-            newPokemon.SetMoves(new Moveset((ushort)Move.Reflect, (ushort)Move.LightScreen, (ushort)Move.Taunt, (ushort)Move.Moonblast));
 
+            Base.maxStats(newPokemon, new int[] { 252, 0, 0, 252, 6, 0 });
+            Base.setMoves(newPokemon, new ushort[] { (ushort)Move.Reflect, (ushort)Move.LightScreen, (ushort)Move.Taunt, (ushort)Move.Moonblast });
             Base.sanitize(newPokemon);
 
             return newPokemon;

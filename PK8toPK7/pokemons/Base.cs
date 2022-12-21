@@ -25,6 +25,7 @@ namespace PKConverter.pokemons
             newPokemon.OT_TextVar = 0;
             newPokemon.OT_Feeling = 0;
             newPokemon.OT_Gender = 0;
+
             newPokemon.TrainerID7 = 729604;
             newPokemon.TrainerSID7 = 3605;
             newPokemon.DisplayTID = 729604;
@@ -34,46 +35,52 @@ namespace PKConverter.pokemons
             newPokemon.HT_Language = (int)LanguageID.English;
             newPokemon.HT_Name = "Jimmy";
 
+            return newPokemon;
+        }
+
+        public static void maxStats(PK9 newPokemon, int[] evs)
+        {
             newPokemon.MaximizeLevel();
+            newPokemon.SetEVs(evs);
             newPokemon.SetRandomIVs(4);
-            Span<int> ivs= stackalloc int[6];
+            Span<int> ivs = stackalloc int[6];
             newPokemon.GetIVs(ivs);
-            if(ivs[0] != newPokemon.MaxIV)
+            if (ivs[0] != newPokemon.MaxIV)
             {
                 newPokemon.HT_HP = true;
             }
-            if(ivs[1] != newPokemon.MaxIV)
+            if (ivs[1] != newPokemon.MaxIV)
             {
                 newPokemon.HT_ATK = true;
             }
-            if(ivs[2] != newPokemon.MaxIV)
+            if (ivs[2] != newPokemon.MaxIV)
             {
                 newPokemon.HT_DEF = true;
             }
-            if(ivs[3] != newPokemon.MaxIV)
+            if (ivs[3] != newPokemon.MaxIV)
             {
                 newPokemon.HT_SPE = true;
             }
-            if(ivs[4] != newPokemon.MaxIV)
+            if (ivs[4] != newPokemon.MaxIV)
             {
                 newPokemon.HT_SPA = true;
             }
-            if(ivs[5] != newPokemon.MaxIV)
+            if (ivs[5] != newPokemon.MaxIV)
             {
                 newPokemon.HT_SPD = true;
             }
+        }
 
-            return newPokemon;
+        public static void setMoves(PK9 newPokemon, ushort[] moves)
+        {
+            newPokemon.FixMoves();
+            newPokemon.SetMoves(new Moveset(moves[0], moves[1], moves[2], moves[3]));
+            TechnicalRecordApplicator.SetRecordFlags(newPokemon, moves);
         }
 
         public static void sanitize(PK9 newPokemon)
         {
-            var moves = new ushort[4];
-            newPokemon.GetMoves(moves);
-            TechnicalRecordApplicator.SetRecordFlags(newPokemon, moves);
-
             newPokemon.ResetPartyStats();
-            newPokemon.FixMoves();
             newPokemon.Heal();
             newPokemon.ClearNickname();
             newPokemon.EncryptionConstant = 4249466146;

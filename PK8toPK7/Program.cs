@@ -123,7 +123,7 @@ namespace PK8toPK7
 
             PK9 ironValiantTeraSupport = IronValiant.bestBuild();
             print("/Users/jimmy.somsanith/Downloads/IronValiant.teraSupport.details.txt", ironValiantTeraSupport);
-            checkLegality("/Users/jimmy.somsanith/Downloads/IronValiant.best.report.txt", ironValiantTeraSupport);
+            checkLegality("/Users/jimmy.somsanith/Downloads/IronValiant.teraSupport.report.txt", ironValiantTeraSupport);
             File.WriteAllBytes("/Users/jimmy.somsanith/Downloads/IronValiant.teraSupport.pk9", ironValiantTeraSupport.DecryptedPartyData);
         }
 

@@ -18,12 +18,10 @@ namespace PKConverter
             newPokemon.SetAbility((int)Ability.WeakArmor);
             newPokemon.Nature = (int)Nature.Adamant;
             newPokemon.SetNature(newPokemon.Nature);
-
-            newPokemon.SetEVs(new int[] { 4, 252, 0, 0, 252, 0 });
-
             newPokemon.HeldItem = 0x0113; // Focus Sash - https://projectpokemon.org/home/docs/gen-4/list-of-items-by-index-number-r23/
-            newPokemon.SetMoves(new Moveset((ushort)Move.SwordsDance, (ushort)Move.CloseCombat, (ushort)Move.ShadowSneak, (ushort)Move.BitterBlade));
 
+            Base.maxStats(newPokemon, new int[] { 4, 252, 0, 0, 252, 0 });
+            Base.setMoves(newPokemon, new ushort[] { (ushort)Move.SwordsDance, (ushort)Move.CloseCombat, (ushort)Move.ShadowSneak, (ushort)Move.BitterBlade });
             Base.sanitize(newPokemon);
 
             return newPokemon;
@@ -38,12 +36,10 @@ namespace PKConverter
             newPokemon.SetAbility((int)Ability.FlashFire);
             newPokemon.Nature = (int)Nature.Adamant;
             newPokemon.SetNature(newPokemon.Nature);
-
-            newPokemon.SetEVs(new int[] { 252, 252, 4, 0, 0, 0 });
-
             newPokemon.HeldItem = 0x00EA; // Leftover - https://projectpokemon.org/home/docs/gen-4/list-of-items-by-index-number-r23/
-            newPokemon.SetMoves(new Moveset((ushort)Move.SwordsDance, (ushort)Move.CloseCombat, (ushort)Move.PhantomForce, (ushort)Move.BitterBlade));
 
+            Base.maxStats(newPokemon, new int[] { 252, 252, 4, 0, 0, 0 });
+            Base.setMoves(newPokemon, new ushort[] { (ushort)Move.SwordsDance, (ushort)Move.CloseCombat, (ushort)Move.PhantomForce, (ushort)Move.BitterBlade });
             Base.sanitize(newPokemon);
 
             return newPokemon;
@@ -58,12 +54,10 @@ namespace PKConverter
             newPokemon.SetAbility((int)Ability.FlashFire);
             newPokemon.Nature = (int)Nature.Adamant;
             newPokemon.SetNature(newPokemon.Nature);
-
-            newPokemon.SetEVs(new int[] { 252, 252, 4, 0, 0, 0 });
-
             newPokemon.HeldItem = 0x00EA; // Leftover - https://projectpokemon.org/home/docs/gen-4/list-of-items-by-index-number-r23/
-            newPokemon.SetMoves(new Moveset((ushort)Move.SwordsDance, (ushort)Move.PsychoCut, (ushort)Move.PhantomForce, (ushort)Move.BitterBlade));
 
+            Base.maxStats(newPokemon, new int[] { 252, 252, 4, 0, 0, 0 });
+            Base.setMoves(newPokemon, new ushort[] { (ushort)Move.SwordsDance, (ushort)Move.PsychoCut, (ushort)Move.PhantomForce, (ushort)Move.BitterBlade });
             Base.sanitize(newPokemon);
 
             return newPokemon;
