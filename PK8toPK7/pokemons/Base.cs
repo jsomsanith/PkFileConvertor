@@ -80,7 +80,6 @@ namespace PKConverter.pokemons
 
         public static void sanitize(PK9 newPokemon)
         {
-            newPokemon.ResetPartyStats();
             newPokemon.Heal();
             newPokemon.ClearNickname();
             newPokemon.EncryptionConstant = 4249466146;

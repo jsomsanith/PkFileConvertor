@@ -11,6 +11,7 @@
 
   <ItemGroup>
     <None Remove="pokemons\" />
+    <None Remove="BattleReady\" />
   </ItemGroup>
   <ItemGroup>
     <None Update="test.tt">
@@ -19,5 +20,6 @@
   </ItemGroup>
   <ItemGroup>
     <Folder Include="pokemons\" />
+    <Folder Include="BattleReady\" />
   </ItemGroup>
 </Project>

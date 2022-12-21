@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.IO;
 using PKConverter;
+using PKConverter.BattleReady;
 
 namespace PK8toPK7
 {
@@ -89,7 +90,9 @@ namespace PK8toPK7
         static void Main(string[] args)
         {
             //fixGen8Date(args);
-            buildGen9(args);
+            //buildGen9(args);
+
+            BattleReady.buildBR();
         }
 
         private static void buildGen9(string[] args)
@@ -116,18 +119,16 @@ namespace PK8toPK7
             checkLegality("/Users/jimmy.somsanith/Downloads/IronValiant.best.report.txt", ironValiant);
             File.WriteAllBytes("/Users/jimmy.somsanith/Downloads/IronValiant.best.pk9", ironValiant.DecryptedPartyData);
 
-            PK9 ironValianTera = IronValiant.bestBuild();
+            PK9 ironValianTera = IronValiant.teraBuild();
             print("/Users/jimmy.somsanith/Downloads/IronValiant.tera.details.txt", ironValianTera);
             checkLegality("/Users/jimmy.somsanith/Downloads/IronValiant.tera.report.txt", ironValianTera);
             File.WriteAllBytes("/Users/jimmy.somsanith/Downloads/IronValiant.tera.pk9", ironValianTera.DecryptedPartyData);
 
-            PK9 ironValiantTeraSupport = IronValiant.bestBuild();
+            PK9 ironValiantTeraSupport = IronValiant.teraBuildForSupport();
             print("/Users/jimmy.somsanith/Downloads/IronValiant.teraSupport.details.txt", ironValiantTeraSupport);
             checkLegality("/Users/jimmy.somsanith/Downloads/IronValiant.teraSupport.report.txt", ironValiantTeraSupport);
             File.WriteAllBytes("/Users/jimmy.somsanith/Downloads/IronValiant.teraSupport.pk9", ironValiantTeraSupport.DecryptedPartyData);
         }
-
-
 
         private static void fixGen8Date(string[] args)
         {

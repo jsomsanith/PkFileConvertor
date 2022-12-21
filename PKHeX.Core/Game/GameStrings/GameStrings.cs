@@ -51,7 +51,7 @@ public sealed class GameStrings : IBasicStrings
         1712, 1713, 1746, 1747, 1748, 1749, 1750, 1771,
     };
 
-    internal GameStrings(string l)
+    public GameStrings(string l)
     {
         lang = l;
         LanguageIndex = GameLanguage.GetLanguageIndex(l);
