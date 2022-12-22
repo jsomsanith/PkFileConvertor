@@ -83,16 +83,22 @@ namespace PKConverter.BattleReady
                     setMoves(pokemon, moves);
 					Console.WriteLine("moves: " + move1 + ", " + move2 + ", " + move3 + ", " + move4);
 
+                    pokemon.MaximizeLevel();
+                    pokemon.SetRandomIVs(6);
                     pokemon.Heal();
+                    pokemon.SetMaximumPPUps();
                     pokemon.RefreshChecksum();
 
-                    var fileName = ((int)pokemon.Species) + (pokemon.IsShiny ? " ★" : "" ) + " - " + rawSpecieName + ("".Equals(build.name) ? ("#" + index) : (" - " + build.name));
+                    var fileName = ((int)pokemon.Species) + (pokemon.IsShiny ? " ★" : "" ) + " - " + rawSpecieName + (("".Equals(build.name) || build.name == null) ? ("#" + index) : (" - " + build.name));
                     var pokemonPath = targetPath + "/" + fileName;
                     LegalityAnalysis analysis = new LegalityAnalysis(pokemon);
-                    File.WriteAllText(pokemonPath + ".report.txt", analysis.Report(true));
+                    if(!analysis.Valid)
+                    {
+                        File.WriteAllText(pokemonPath + ".report.txt", analysis.Report(true));
+                        throw new Exception(rawSpecieName + " is not valid !");
+                    }
                     File.WriteAllBytes(pokemonPath + ".pk9", pokemon.DecryptedPartyData);
                 }
-                break;
             }
 
         }
