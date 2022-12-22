@@ -5,6 +5,7 @@ using System.ComponentModel;
 using System.IO;
 using PKConverter;
 using PKConverter.BattleReady;
+using PKConverter.Utils;
 
 namespace PK8toPK7
 {
@@ -95,40 +96,7 @@ namespace PK8toPK7
             BattleReady.buildBR();
         }
 
-        private static void buildGen9(string[] args)
-        {
-            LocalizeUtil.InitializeStrings("en");
-
-            PK9 ceruledge = Ceruledge.bestBuild();
-            print("/Users/jimmy.somsanith/Downloads/Ceruledge.best.details.txt", ceruledge);
-            checkLegality("/Users/jimmy.somsanith/Downloads/Ceruledge.best.report.txt", ceruledge);
-            File.WriteAllBytes("/Users/jimmy.somsanith/Downloads/Ceruledge.best.pk9", ceruledge.DecryptedPartyData);
-
-            PK9 ceruledgeTera = Ceruledge.teraBuild();
-            print("/Users/jimmy.somsanith/Downloads/Ceruledge.tera.details.txt", ceruledgeTera);
-            checkLegality("/Users/jimmy.somsanith/Downloads/Ceruledge.tera.report.txt", ceruledgeTera);
-            File.WriteAllBytes("/Users/jimmy.somsanith/Downloads/Ceruledge.tera.pk9", ceruledgeTera.DecryptedPartyData);
-
-            PK9 ceruledgeTera2 = Ceruledge.teraBuildForCinderace();
-            print("/Users/jimmy.somsanith/Downloads/Ceruledge.tera2.details.txt", ceruledgeTera2);
-            checkLegality("/Users/jimmy.somsanith/Downloads/Ceruledge.tera2.report.txt", ceruledgeTera2);
-            File.WriteAllBytes("/Users/jimmy.somsanith/Downloads/Ceruledge.tera2.pk9", ceruledgeTera2.DecryptedPartyData);
-
-            PK9 ironValiant = IronValiant.bestBuild();
-            print("/Users/jimmy.somsanith/Downloads/IronValiant.best.details.txt", ironValiant);
-            checkLegality("/Users/jimmy.somsanith/Downloads/IronValiant.best.report.txt", ironValiant);
-            File.WriteAllBytes("/Users/jimmy.somsanith/Downloads/IronValiant.best.pk9", ironValiant.DecryptedPartyData);
-
-            PK9 ironValianTera = IronValiant.teraBuild();
-            print("/Users/jimmy.somsanith/Downloads/IronValiant.tera.details.txt", ironValianTera);
-            checkLegality("/Users/jimmy.somsanith/Downloads/IronValiant.tera.report.txt", ironValianTera);
-            File.WriteAllBytes("/Users/jimmy.somsanith/Downloads/IronValiant.tera.pk9", ironValianTera.DecryptedPartyData);
-
-            PK9 ironValiantTeraSupport = IronValiant.teraBuildForSupport();
-            print("/Users/jimmy.somsanith/Downloads/IronValiant.teraSupport.details.txt", ironValiantTeraSupport);
-            checkLegality("/Users/jimmy.somsanith/Downloads/IronValiant.teraSupport.report.txt", ironValiantTeraSupport);
-            File.WriteAllBytes("/Users/jimmy.somsanith/Downloads/IronValiant.teraSupport.pk9", ironValiantTeraSupport.DecryptedPartyData);
-        }
+        
 
         private static void fixGen8Date(string[] args)
         {
@@ -225,8 +193,8 @@ namespace PK8toPK7
 
                 if (pk9 != null)
                 {
-                    print(f.Replace(fi.Extension, ".details.txt"), pk9);
-                    checkLegality(f.Replace(fi.Extension, ".report.txt"), pk9);
+                    PKUtils.writeDetails(f.Replace(fi.Extension, ".details.txt"), pk9);
+                    PKUtils.checkLegality(f.Replace(fi.Extension, ".report.txt"), pk9);
                 }
 
                 if (pk8 != null)
@@ -293,31 +261,6 @@ namespace PK8toPK7
             Console.WriteLine(eventDateEntry);
             Console.WriteLine("Updated met date: " + dateBeforeUpdate + " --> " + pk8.MetDate);
 
-        }
-
-        private static void print(string fileName, PK9 pk9)
-        {
-            var details = "";
-            foreach (PropertyDescriptor descriptor in TypeDescriptor.GetProperties(pk9))
-            {
-                try
-                {
-                    string name = descriptor.Name;
-                    object value = descriptor.GetValue(pk9);
-                    //Console.WriteLine("{0}={1}", name, value);
-                    details += name + "=" + value + "\n";
-                }
-                catch (Exception e) { }
-            }
-
-            File.WriteAllText(fileName, details);
-
-        }
-
-        private static void checkLegality(string fileName, PK9 pk9)
-        {
-            LegalityAnalysis analysis = new LegalityAnalysis(pk9);
-            File.WriteAllText(fileName, analysis.Report(true));
         }
     }
 }

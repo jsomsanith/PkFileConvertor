@@ -1,10 +1,12 @@
 ﻿using System;
 using System.IO;
+using System.Linq;
 using System.Reflection;
+using System.Runtime.Intrinsics.X86;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using System.Xml.Linq;
-using PKConverter.pokemons;
+using PKConverter.Utils;
 using PKHeX.Core;
 
 namespace PKConverter.BattleReady
@@ -18,13 +20,17 @@ namespace PKConverter.BattleReady
 		public static void buildBR()
 		{
             string targetPath = @"/Users/jimmy.somsanith/Downloads/BR";
+            string targetShinyPath = @"/Users/jimmy.somsanith/Downloads/SBR";
             string brDataFilePath = @"/Users/jimmy.somsanith/Documents/workspace/jsomsanith/Game8-extract/json/br-dex.json";
             string brDataJson = File.ReadAllText(brDataFilePath);
             BRData[] brData = JsonSerializer.Deserialize<BRData[]>(brDataJson);
 
+            string showdown = "";
+            string shinyShowdown = "";
+
             var path = @"/Users/jimmy.somsanith/Downloads/perso/SV_Shinies";
 			var files = Directory.EnumerateFiles(path, "*", 0);
-
+            files =  files.OrderBy(s => Int16.Parse(Regex.Match(s, @"\d+").Value));
             foreach (var f in files)
 			{
                 var fi = new FileInfo(f);
@@ -48,8 +54,10 @@ namespace PKConverter.BattleReady
 
                 Console.WriteLine(rawSpecieName + ": " + brPkmData.builds.Length + " build(s) found");
 
+                char multiIndex = (char)65;
                 for (int index = 0; index < brPkmData.builds.Length; index++)
                 {
+
                     BRBuild build = brPkmData.builds[index];
                     Console.WriteLine();
 					Console.WriteLine(rawSpecieName + "#" + index + "(" + build.name + ")" +  "-------------------------");
@@ -83,22 +91,66 @@ namespace PKConverter.BattleReady
                     setMoves(pokemon, moves);
 					Console.WriteLine("moves: " + move1 + ", " + move2 + ", " + move3 + ", " + move4);
 
+                    pokemon.OT_Name = "Pokepark";
                     pokemon.MaximizeLevel();
                     pokemon.SetRandomIVs(6);
                     pokemon.Heal();
                     pokemon.SetMaximumPPUps();
+
+                    pokemon.SetIsShiny(false);
                     pokemon.RefreshChecksum();
 
-                    var fileName = ((int)pokemon.Species) + (pokemon.IsShiny ? " ★" : "" ) + " - " + rawSpecieName + (("".Equals(build.name) || build.name == null) ? ("#" + index) : (" - " + build.name));
+                    //var fileName = ((int)pokemon.Species) + (pokemon.IsShiny ? " ★" : "" ) + " - " + rawSpecieName + (("".Equals(build.name) || build.name == null) ? ("#" + index) : (" - " + build.name));
+                    var pkmCode = "BR" + ((int)pokemon.Species) + (brPkmData.builds.Length > 1 ? ("-" + multiIndex) : "");
+                    var fileName = pkmCode + " " + rawSpecieName;
                     var pokemonPath = targetPath + "/" + fileName;
-                    LegalityAnalysis analysis = new LegalityAnalysis(pokemon);
-                    if(!analysis.Valid)
-                    {
-                        File.WriteAllText(pokemonPath + ".report.txt", analysis.Report(true));
-                        throw new Exception(rawSpecieName + " is not valid !");
-                    }
+                    PKUtils.checkLegality(pokemonPath + ".report.txt", pokemon);
                     File.WriteAllBytes(pokemonPath + ".pk9", pokemon.DecryptedPartyData);
+                    
+                    showdown += pkmCode + " (" + rawSpecieName + ") " + (pokemon.Gender == (int)Gender.Male ? "(M) " : pokemon.Gender == (int)Gender.Female ? "(F) " : "") + "@ " + gameString.itemlist[pokemon.HeldItem] + "\n";
+                    showdown += "Ability: " + gameString.abilitylist[pokemon.Ability] + "\n";
+                    showdown += "Tera Type: " + teraType + "\n";
+                    showdown += "Level: " + pokemon.CurrentLevel + "\n";
+                    showdown += "EVs: " + build.evs.HP + " HP / " + build.evs.ATK + " Atk / " + build.evs.DEF + " Def / " + build.evs.SPA + " SpA / " + build.evs.SPD + " SpD / " + build.evs.SPE + " Spe\n";
+                    showdown += "Shiny: No\n";
+                    showdown += nature + " Nature\n";
+                    showdown += "- " + gameString.movelist[(int)move1] + "\n";
+                    showdown += "- " + gameString.movelist[(int)move2] + "\n";
+                    showdown += "- " + gameString.movelist[(int)move3] + "\n";
+                    showdown += "- " + gameString.movelist[(int)move4] + "\n\n";
+
+                    pokemon.SetIsShiny(true);
+                    pokemon.SetShinySID(Shiny.AlwaysSquare);
+                    pokemon.RefreshChecksum();
+
+                    pkmCode = "SBR" + ((int)pokemon.Species) + (brPkmData.builds.Length > 1 ? ("-" + multiIndex) : "");
+                    fileName = pkmCode + " " + rawSpecieName;
+                    pokemonPath = targetShinyPath + "/" + fileName;
+                    try
+                    {
+                        PKUtils.checkLegality(pokemonPath + ".report.txt", pokemon);
+                        File.WriteAllBytes(pokemonPath + ".pk9", pokemon.DecryptedPartyData);
+
+                        shinyShowdown += pkmCode + " (" + rawSpecieName + ") " + (pokemon.Gender == (int)Gender.Male ? "(M) " : pokemon.Gender == (int)Gender.Female ? "(F) " : "") + "@ " + gameString.itemlist[pokemon.HeldItem] + "\n";
+                        shinyShowdown += "Ability: " + gameString.abilitylist[pokemon.Ability] + "\n";
+                        shinyShowdown += "Tera Type: " + teraType + "\n";
+                        shinyShowdown += "Level: " + pokemon.CurrentLevel + "\n";
+                        shinyShowdown += "EVs: " + build.evs.HP + " HP / " + build.evs.ATK + " Atk / " + build.evs.DEF + " Def / " + build.evs.SPA + " SpA / " + build.evs.SPD + " SpD / " + build.evs.SPE + " Spe\n";
+                        shinyShowdown += "Shiny: Yes\n";
+                        shinyShowdown += nature + " Nature\n";
+                        shinyShowdown += "- " + gameString.movelist[(int)move1] + "\n";
+                        shinyShowdown += "- " + gameString.movelist[(int)move2] + "\n";
+                        shinyShowdown += "- " + gameString.movelist[(int)move3] + "\n";
+                        shinyShowdown += "- " + gameString.movelist[(int)move4] + "\n\n";
+                    } catch(Exception e) { }
+
+                    multiIndex++;
                 }
+
+                var showdownPath = targetPath + "/showdown.txt";
+                var shinyShowdownPath = targetShinyPath + "/shinySowdown.txt";
+                File.WriteAllText(showdownPath, showdown);
+                File.WriteAllText(shinyShowdownPath, shinyShowdown);
             }
 
         }
