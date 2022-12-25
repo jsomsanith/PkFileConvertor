@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -13,12 +14,9 @@ namespace PKConverter.BattleReady
 {
 	public class BattleReady
 	{
-		public BattleReady()
-		{
-		}
-
 		public static void buildBR()
 		{
+            List<ushort> speciesDone = new List<ushort>();
             string targetPath = @"/Users/jimmy.somsanith/Downloads/BR";
             string targetShinyPath = @"/Users/jimmy.somsanith/Downloads/SBR";
             string brDataFilePath = @"/Users/jimmy.somsanith/Documents/workspace/jsomsanith/Game8-extract/json/br-dex.json";
@@ -37,6 +35,12 @@ namespace PKConverter.BattleReady
                 var data = File.ReadAllBytes(f);
 				PK9 basePokemon = new PK9(data);
 
+                if(speciesDone.Contains(basePokemon.Species))
+                {
+                    continue;
+                }
+                speciesDone.Add(basePokemon.Species);
+
                 var gameString = new GameStrings("en");
                 string rawSpecieName = gameString.specieslist[basePokemon.Species];
                 //            var name = Regex.Replace(rawSpecieName, @"\s+", "");
@@ -54,7 +58,8 @@ namespace PKConverter.BattleReady
 
                 Console.WriteLine(rawSpecieName + ": " + brPkmData.builds.Length + " build(s) found");
 
-                char multiIndex = (char)65;
+                char multiIndexLetter = (char)65;
+                int multiIndexNumber = 1;
                 for (int index = 0; index < brPkmData.builds.Length; index++)
                 {
 
@@ -91,7 +96,7 @@ namespace PKConverter.BattleReady
                     setMoves(pokemon, moves);
 					Console.WriteLine("moves: " + move1 + ", " + move2 + ", " + move3 + ", " + move4);
 
-                    pokemon.OT_Name = "Pokepark";
+                    pokemon.OT_Name = "Pokepark"; //"CasualTea";
                     pokemon.MaximizeLevel();
                     pokemon.SetRandomIVs(6);
                     pokemon.Heal();
@@ -100,13 +105,18 @@ namespace PKConverter.BattleReady
                     pokemon.SetIsShiny(false);
                     pokemon.RefreshChecksum();
 
+                    // pokepark default
                     //var fileName = ((int)pokemon.Species) + (pokemon.IsShiny ? " ★" : "" ) + " - " + rawSpecieName + (("".Equals(build.name) || build.name == null) ? ("#" + index) : (" - " + build.name));
-                    var pkmCode = "BR" + ((int)pokemon.Species) + (brPkmData.builds.Length > 1 ? ("-" + multiIndex) : "");
+                    // casualtea
+                    //var fileName = "BR" + rawSpecieName + (brPkmData.builds.Length > 1 ? multiIndexNumber : "");
+                    var pkmCode = "BR" + ((int)pokemon.Species) + (brPkmData.builds.Length > 1 ? ("-" + multiIndexLetter) : "");
                     var fileName = pkmCode + " " + rawSpecieName;
                     var pokemonPath = targetPath + "/" + fileName;
                     PKUtils.checkLegality(pokemonPath + ".report.txt", pokemon);
                     File.WriteAllBytes(pokemonPath + ".pk9", pokemon.DecryptedPartyData);
-                    
+
+                    // casualtea
+                    //showdown += fileName + " " + (pokemon.Gender == (int)Gender.Male ? "(M) " : pokemon.Gender == (int)Gender.Female ? "(F) " : "") + "@ " + gameString.itemlist[pokemon.HeldItem] + "\n";
                     showdown += pkmCode + " (" + rawSpecieName + ") " + (pokemon.Gender == (int)Gender.Male ? "(M) " : pokemon.Gender == (int)Gender.Female ? "(F) " : "") + "@ " + gameString.itemlist[pokemon.HeldItem] + "\n";
                     showdown += "Ability: " + gameString.abilitylist[pokemon.Ability] + "\n";
                     showdown += "Tera Type: " + teraType + "\n";
@@ -123,14 +133,18 @@ namespace PKConverter.BattleReady
                     pokemon.SetShinySID(Shiny.AlwaysSquare);
                     pokemon.RefreshChecksum();
 
-                    pkmCode = "SBR" + ((int)pokemon.Species) + (brPkmData.builds.Length > 1 ? ("-" + multiIndex) : "");
+                    pkmCode = "SBR" + ((int)pokemon.Species) + (brPkmData.builds.Length > 1 ? ("-" + multiIndexLetter) : "");
                     fileName = pkmCode + " " + rawSpecieName;
+                    // casualtea
+                    //fileName = "BR" + rawSpecieName + (brPkmData.builds.Length > 1 ? multiIndex : "");
                     pokemonPath = targetShinyPath + "/" + fileName;
                     try
                     {
                         PKUtils.checkLegality(pokemonPath + ".report.txt", pokemon);
                         File.WriteAllBytes(pokemonPath + ".pk9", pokemon.DecryptedPartyData);
 
+                        // casualtea
+                        //shinyShowdown += fileName + " " + (pokemon.Gender == (int)Gender.Male ? "(M) " : pokemon.Gender == (int)Gender.Female ? "(F) " : "") + "@ " + gameString.itemlist[pokemon.HeldItem] + "\n";
                         shinyShowdown += pkmCode + " (" + rawSpecieName + ") " + (pokemon.Gender == (int)Gender.Male ? "(M) " : pokemon.Gender == (int)Gender.Female ? "(F) " : "") + "@ " + gameString.itemlist[pokemon.HeldItem] + "\n";
                         shinyShowdown += "Ability: " + gameString.abilitylist[pokemon.Ability] + "\n";
                         shinyShowdown += "Tera Type: " + teraType + "\n";
@@ -144,7 +158,8 @@ namespace PKConverter.BattleReady
                         shinyShowdown += "- " + gameString.movelist[(int)move4] + "\n\n";
                     } catch(Exception e) { }
 
-                    multiIndex++;
+                    multiIndexLetter++;
+                    multiIndexNumber++;
                 }
 
                 var showdownPath = targetPath + "/showdown.txt";

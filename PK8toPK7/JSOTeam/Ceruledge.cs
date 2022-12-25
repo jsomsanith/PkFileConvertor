@@ -6,9 +6,6 @@ namespace PKConverter
 {
 	public class Ceruledge
 	{
-		public Ceruledge()
-		{
-		}
 		public static PK9 bestBuild()
 		{
             PK9 newPokemon = baseBuild();

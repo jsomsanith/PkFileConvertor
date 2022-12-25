@@ -7,7 +7,7 @@ namespace PKConverter.pokemons
 	{
 		public Base() {}
 
-		public static PK9 buildPK9()
+		public static PK9 buildPK9(GameVersion gameVersion = GameVersion.VL)
 		{
 
             PK9 newPokemon = new PK9();
@@ -15,7 +15,7 @@ namespace PKConverter.pokemons
             var MaxIV = newPokemon.MaxIV;
 
             newPokemon.Language = (int)LanguageID.English;
-            newPokemon.Version = (int)GameVersion.VL;
+            newPokemon.Version = (int)gameVersion;
 
             newPokemon.CurrentHandler = 1;
             newPokemon.OT_Name = "Jimmy";
@@ -34,6 +34,11 @@ namespace PKConverter.pokemons
             newPokemon.CurrentFriendship = 255;
             newPokemon.HT_Language = (int)LanguageID.English;
             newPokemon.HT_Name = "Jimmy";
+
+            newPokemon.SetShiny();
+            newPokemon.SetShinySID(Shiny.AlwaysSquare);
+            newPokemon.RibbonMarkRare = true;
+            newPokemon.RibbonMarkPartner = true;
 
             return newPokemon;
         }
@@ -84,7 +89,6 @@ namespace PKConverter.pokemons
             newPokemon.ClearNickname();
             newPokemon.EncryptionConstant = 4249466146;
             newPokemon.SetPIDNature(newPokemon.Nature);
-            newPokemon.SetShiny();
             newPokemon.FixMemories();
             newPokemon.FixRelearn();
             newPokemon.RefreshChecksum();

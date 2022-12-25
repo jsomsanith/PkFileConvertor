@@ -6,9 +6,6 @@ namespace PKConverter
 {
 	public class IronValiant
     {
-		public IronValiant()
-		{
-		}
         public static PK9 bestBuild()
         {
             PK9 newPokemon = baseBuild();
