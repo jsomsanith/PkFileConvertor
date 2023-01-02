@@ -42,24 +42,6 @@ namespace PKConverter
             return newPokemon;
         }
 
-        public static PK9 teraBuildForCinderace()
-		{
-            PK9 newPokemon = baseBuild();
-
-            newPokemon.TeraTypeOriginal = MoveType.Fire;
-            newPokemon.SetTeraType(MoveType.Ghost);
-            newPokemon.SetAbility((int)Ability.FlashFire);
-            newPokemon.Nature = (int)Nature.Adamant;
-            newPokemon.SetNature(newPokemon.Nature);
-            newPokemon.HeldItem = 0x00EA; // Leftover - https://projectpokemon.org/home/docs/gen-4/list-of-items-by-index-number-r23/
-
-            Base.maxStats(newPokemon, new int[] { 252, 252, 4, 0, 0, 0 });
-            Base.setMoves(newPokemon, new ushort[] { (ushort)Move.SwordsDance, (ushort)Move.PsychoCut, (ushort)Move.PhantomForce, (ushort)Move.BitterBlade });
-            Base.sanitize(newPokemon);
-
-            return newPokemon;
-        }
-
         private static PK9 baseBuild()
         {
 

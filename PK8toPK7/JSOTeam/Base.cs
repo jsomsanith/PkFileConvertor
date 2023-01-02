@@ -35,11 +35,6 @@ namespace PKConverter.pokemons
             newPokemon.HT_Language = (int)LanguageID.English;
             newPokemon.HT_Name = "Jimmy";
 
-            newPokemon.SetShiny();
-            newPokemon.SetShinySID(Shiny.AlwaysSquare);
-            newPokemon.RibbonMarkRare = true;
-            newPokemon.RibbonMarkPartner = true;
-
             return newPokemon;
         }
 
@@ -91,6 +86,12 @@ namespace PKConverter.pokemons
             newPokemon.SetPIDNature(newPokemon.Nature);
             newPokemon.FixMemories();
             newPokemon.FixRelearn();
+
+            newPokemon.SetShinySID(Shiny.AlwaysSquare);
+            newPokemon.SetShiny();
+            newPokemon.RibbonMarkRare = true;
+            newPokemon.RibbonMarkPartner = true;
+
             newPokemon.RefreshChecksum();
         }
     }

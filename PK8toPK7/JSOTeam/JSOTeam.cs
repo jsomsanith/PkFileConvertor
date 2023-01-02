@@ -21,11 +21,6 @@ namespace PKConverter.JSOTeam
             PKUtils.checkLegality("/Users/jimmy.somsanith/Downloads/team/Ceruledge.tera.report.txt", ceruledgeTera);
             File.WriteAllBytes("/Users/jimmy.somsanith/Downloads/team/Ceruledge.tera.pk9", ceruledgeTera.DecryptedPartyData);
 
-            PK9 ceruledgeTera2 = Ceruledge.teraBuildForCinderace();
-            //PKUtils.writeDetails("/Users/jimmy.somsanith/Downloads/team/Ceruledge.tera2.details.txt", ceruledgeTera2);
-            PKUtils.checkLegality("/Users/jimmy.somsanith/Downloads/team/Ceruledge.tera2.report.txt", ceruledgeTera2);
-            File.WriteAllBytes("/Users/jimmy.somsanith/Downloads/team/Ceruledge.tera2.pk9", ceruledgeTera2.DecryptedPartyData);
-
             PK9 ironValiant = IronValiant.bestBuild();
             //PKUtils.writeDetails("/Users/jimmy.somsanith/Downloads/team/IronValiant.best.details.txt", ironValiant);
             PKUtils.checkLegality("/Users/jimmy.somsanith/Downloads/team/IronValiant.best.report.txt", ironValiant);
@@ -51,7 +46,7 @@ namespace PKConverter.JSOTeam
             PKUtils.checkLegality("/Users/jimmy.somsanith/Downloads/team/Tinkaton.best.report.txt", tinkaton);
             File.WriteAllBytes("/Users/jimmy.somsanith/Downloads/team/Tinkaton.best.pk9", tinkaton.DecryptedPartyData);
 
-            PK9 tinkatonTera = Tinkaton.bestBuild();
+            PK9 tinkatonTera = Tinkaton.teraBuild();
             //PKUtils.writeDetails("/Users/jimmy.somsanith/Downloads/team/Tinkaton.tera.details.txt", tinkatonTera);
             PKUtils.checkLegality("/Users/jimmy.somsanith/Downloads/team/Tinkaton.tera.report.txt", tinkatonTera);
             File.WriteAllBytes("/Users/jimmy.somsanith/Downloads/team/Tinkaton.tera.pk9", tinkatonTera.DecryptedPartyData);
@@ -60,6 +55,11 @@ namespace PKConverter.JSOTeam
             //PKUtils.writeDetails("/Users/jimmy.somsanith/Downloads/team/Kilowattrel.best.details.txt", kilowattrel);
             PKUtils.checkLegality("/Users/jimmy.somsanith/Downloads/team/Kilowattrel.best.report.txt", kilowattrel);
             File.WriteAllBytes("/Users/jimmy.somsanith/Downloads/team/Kilowattrel.best.pk9", kilowattrel.DecryptedPartyData);
+
+            PK9 grafaiai = Grafaiai.bestBuild();
+            //PKUtils.writeDetails("/Users/jimmy.somsanith/Downloads/team/Grafaiai.best.details.txt", grafaiai);
+            PKUtils.checkLegality("/Users/jimmy.somsanith/Downloads/team/Grafaiai.best.report.txt", grafaiai);
+            File.WriteAllBytes("/Users/jimmy.somsanith/Downloads/team/Grafaiai.best.pk9", grafaiai.DecryptedPartyData);
         }
 	}
 }
