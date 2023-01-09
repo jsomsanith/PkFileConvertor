@@ -24,15 +24,15 @@ namespace PKConverter.Utils
             File.WriteAllText(fileName, details);
         }
 
-        public static bool checkLegality(string fileName, PK9 pk9)
+        public static bool checkLegality(string fileName, PKM pkm)
         {
-            LegalityAnalysis analysis = new LegalityAnalysis(pk9);
+            LegalityAnalysis analysis = new LegalityAnalysis(pkm);
 
             if(!analysis.Valid)
             {
                 File.WriteAllText(fileName, analysis.Report(true));
                 var gameString = new GameStrings("en");
-                throw new Exception(gameString.specieslist[pk9.Species] + " is not valid !");
+                throw new Exception(gameString.specieslist[pkm.Species] + " is not valid !");
             }
 
             return analysis.Valid;

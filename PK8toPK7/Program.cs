@@ -5,6 +5,7 @@ using System.ComponentModel;
 using System.IO;
 using PKConverter;
 using PKConverter.BattleReady;
+using PKConverter.Smogon;
 using PKConverter.JSOTeam;
 using PKConverter.Utils;
 
@@ -94,8 +95,11 @@ namespace PK8toPK7
             //fixGen8Date(args);
 
             //BattleReady.buildBR();
-            JSOTeam.buildTeamPK9();
+            //JSOTeam.buildTeamPK9();
             //Eevee.build();
+
+            SVBattleReady.build();
+            SWSHBattleReady.build();
         }
 
         
