@@ -10,6 +10,7 @@ namespace PKConverter.JSOTeam
 		public static void buildTeamPK9()
 		{
             LocalizeUtil.InitializeStrings("en");
+            Directory.CreateDirectory("/Users/jimmy.somsanith/Downloads/team");
 
             PK9 ceruledge = Ceruledge.bestBuild();
             //PKUtils.writeDetails("/Users/jimmy.somsanith/Downloads/team/Ceruledge.best.details.txt", ceruledge);
@@ -60,6 +61,11 @@ namespace PKConverter.JSOTeam
             //PKUtils.writeDetails("/Users/jimmy.somsanith/Downloads/team/Grafaiai.best.details.txt", grafaiai);
             PKUtils.checkLegality("/Users/jimmy.somsanith/Downloads/team/Grafaiai.best.report.txt", grafaiai);
             File.WriteAllBytes("/Users/jimmy.somsanith/Downloads/team/Grafaiai.best.pk9", grafaiai.DecryptedPartyData);
+
+            PK9 lycanroc = Lycanroc.bestBuild();
+            //PKUtils.writeDetails("/Users/jimmy.somsanith/Downloads/team/Lycanroc.best.details.txt", lycanroc);
+            PKUtils.checkLegality("/Users/jimmy.somsanith/Downloads/team/Lycanroc.best.report.txt", lycanroc);
+            File.WriteAllBytes("/Users/jimmy.somsanith/Downloads/team/Lycanroc.best.pk9", lycanroc.DecryptedPartyData);
         }
 	}
 }
