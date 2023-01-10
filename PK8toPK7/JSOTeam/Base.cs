@@ -78,7 +78,7 @@ namespace PKConverter.pokemons
             TechnicalRecordApplicator.SetRecordFlags(newPokemon, moves);
         }
 
-        public static void sanitize(PK9 newPokemon)
+        public static void sanitize(PK9 newPokemon, bool rareMark = true)
         {
             newPokemon.Heal();
             newPokemon.ClearNickname();
@@ -89,7 +89,7 @@ namespace PKConverter.pokemons
 
             newPokemon.SetShinySID(Shiny.AlwaysSquare);
             newPokemon.SetShiny();
-            newPokemon.RibbonMarkRare = true;
+            newPokemon.RibbonMarkRare = rareMark;
             newPokemon.RibbonMarkPartner = true;
 
             newPokemon.RefreshChecksum();

@@ -19,7 +19,7 @@ namespace PKConverter
 
             Base.maxStats(newPokemon, new int[] { 0, 252, 0, 252, 0, 4 });
             Base.setMoves(newPokemon, new ushort[] { (ushort)Move.SwordsDance, (ushort)Move.LowKick, (ushort)Move.TeraBlast, (ushort)Move.GunkShot});
-            Base.sanitize(newPokemon);
+            Base.sanitize(newPokemon, false /*no rare mark*/);
 
             return newPokemon;
         }

@@ -27,8 +27,8 @@ namespace PKConverter.Utils
         public static bool checkLegality(string fileName, PKM pkm)
         {
             LegalityAnalysis analysis = new LegalityAnalysis(pkm);
-
-            if(!analysis.Valid)
+           
+            if (!analysis.Valid)
             {
                 File.WriteAllText(fileName, analysis.Report(true));
                 var gameString = new GameStrings("en");
@@ -36,6 +36,12 @@ namespace PKConverter.Utils
             }
 
             return analysis.Valid;
+        }
+
+        public static LegalInfo getLegalityInfo(PKM pkm)
+        {
+            LegalityAnalysis analysis = new LegalityAnalysis(pkm);
+            return analysis.Info;
         }
     }
 }
