@@ -91,6 +91,7 @@ namespace PKConverter.pokemons
             newPokemon.SetShiny();
             newPokemon.RibbonMarkRare = rareMark;
             newPokemon.RibbonMarkPartner = true;
+            newPokemon.RibbonChampionPaldea = true;
 
             newPokemon.RefreshChecksum();
         }

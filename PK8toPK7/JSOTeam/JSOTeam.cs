@@ -11,7 +11,7 @@ namespace PKConverter.JSOTeam
 		{
             LocalizeUtil.InitializeStrings("en");
             Directory.CreateDirectory("/Users/jimmy.somsanith/Downloads/team");
-
+            
             PK9 ceruledge = Ceruledge.bestBuild();
             //PKUtils.writeDetails("/Users/jimmy.somsanith/Downloads/team/Ceruledge.best.details.txt", ceruledge);
             PKUtils.checkLegality("/Users/jimmy.somsanith/Downloads/team/Ceruledge.best.report.txt", ceruledge);
@@ -66,6 +66,11 @@ namespace PKConverter.JSOTeam
             //PKUtils.writeDetails("/Users/jimmy.somsanith/Downloads/team/Lycanroc.best.details.txt", lycanroc);
             PKUtils.checkLegality("/Users/jimmy.somsanith/Downloads/team/Lycanroc.best.report.txt", lycanroc);
             File.WriteAllBytes("/Users/jimmy.somsanith/Downloads/team/Lycanroc.best.pk9", lycanroc.DecryptedPartyData);
+            
+            PK9 vivillon = Vivillon.bestBuild();
+            //PKUtils.writeDetails("/Users/jimmy.somsanith/Downloads/team/Vivillon.best.details.txt", vivillon);
+            PKUtils.checkLegality("/Users/jimmy.somsanith/Downloads/team/Vivillon.best.report.txt", vivillon);
+            File.WriteAllBytes("/Users/jimmy.somsanith/Downloads/team/Vivillon.best.pk9", vivillon.DecryptedPartyData);
         }
 	}
 }
