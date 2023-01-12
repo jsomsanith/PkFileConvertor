@@ -11,8 +11,6 @@ namespace PKConverter.pokemons
 		{
 
             PK9 newPokemon = new PK9();
-            var rnd = Util.Rand;
-            var MaxIV = newPokemon.MaxIV;
 
             newPokemon.Language = (int)LanguageID.English;
             newPokemon.Version = (int)gameVersion;
@@ -76,6 +74,14 @@ namespace PKConverter.pokemons
             newPokemon.FixMoves();
             newPokemon.SetMoves(new Moveset(moves[0], moves[1], moves[2], moves[3]));
             TechnicalRecordApplicator.SetRecordFlags(newPokemon, moves);
+
+            var legal = new LegalityAnalysis(newPokemon);
+            if (legal.Parsed && !MoveResult.AllValid(legal.Info.Relearn))
+            {
+                newPokemon.SetRelearnMoves(legal.GetSuggestedRelearnMoves());
+            }
+            //newPokemon.ResetPartyStats();
+            //newPokemon.RefreshChecksum();
         }
 
         public static void sanitize(PK9 newPokemon, bool rareMark = true)

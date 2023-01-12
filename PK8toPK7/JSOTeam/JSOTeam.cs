@@ -71,6 +71,16 @@ namespace PKConverter.JSOTeam
             //PKUtils.writeDetails("/Users/jimmy.somsanith/Downloads/team/Vivillon.best.details.txt", vivillon);
             PKUtils.checkLegality("/Users/jimmy.somsanith/Downloads/team/Vivillon.best.report.txt", vivillon);
             File.WriteAllBytes("/Users/jimmy.somsanith/Downloads/team/Vivillon.best.pk9", vivillon.DecryptedPartyData);
+            
+            PK9 meowscarada = Meowscarada.bestBuild();
+            //PKUtils.writeDetails("/Users/jimmy.somsanith/Downloads/team/Meowscarada.best.details.txt", meowscarada);
+            PKUtils.checkLegality("/Users/jimmy.somsanith/Downloads/team/Meowscarada.best.report.txt", meowscarada);
+            File.WriteAllBytes("/Users/jimmy.somsanith/Downloads/team/Meowscarada.best.pk9", meowscarada.DecryptedPartyData);
+            
+            PK9 meowscaradaTera = Meowscarada.teraBuild();
+            //PKUtils.writeDetails("/Users/jimmy.somsanith/Downloads/team/Meowscarada.tera.details.txt", meowscaradaTera);
+            PKUtils.checkLegality("/Users/jimmy.somsanith/Downloads/team/Meowscarada.tera.report.txt", meowscaradaTera);
+            File.WriteAllBytes("/Users/jimmy.somsanith/Downloads/team/Meowscarada.tera.pk9", meowscaradaTera.DecryptedPartyData);
         }
 	}
 }
