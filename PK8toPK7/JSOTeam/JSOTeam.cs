@@ -11,7 +11,7 @@ namespace PKConverter.JSOTeam
 		{
             LocalizeUtil.InitializeStrings("en");
             Directory.CreateDirectory("/Users/jimmy.somsanith/Downloads/team");
-            
+            /*
             PK9 ceruledge = Ceruledge.bestBuild();
             //PKUtils.writeDetails("/Users/jimmy.somsanith/Downloads/team/Ceruledge.best.details.txt", ceruledge);
             PKUtils.checkLegality("/Users/jimmy.somsanith/Downloads/team/Ceruledge.best.report.txt", ceruledge);
@@ -81,7 +81,23 @@ namespace PKConverter.JSOTeam
             //PKUtils.writeDetails("/Users/jimmy.somsanith/Downloads/team/Meowscarada.tera.details.txt", meowscaradaTera);
             PKUtils.checkLegality("/Users/jimmy.somsanith/Downloads/team/Meowscarada.tera.report.txt", meowscaradaTera);
             File.WriteAllBytes("/Users/jimmy.somsanith/Downloads/team/Meowscarada.tera.pk9", meowscaradaTera.DecryptedPartyData);
+            
+            PK9 skeledirge = Skeledirge.bestBuild();
+            //PKUtils.writeDetails("/Users/jimmy.somsanith/Downloads/team/Skeledirge.best.details.txt", skeledirge);
+            PKUtils.checkLegality("/Users/jimmy.somsanith/Downloads/team/Skeledirge.best.report.txt", skeledirge);
+            File.WriteAllBytes("/Users/jimmy.somsanith/Downloads/team/Skeledirge.best.pk9", skeledirge.DecryptedPartyData);
+            
+            PK9 skeledirgeTera = Skeledirge.teraBuild();
+            //PKUtils.writeDetails("/Users/jimmy.somsanith/Downloads/team/Skeledirge.tera.details.txt", skeledirgeTera);
+            PKUtils.checkLegality("/Users/jimmy.somsanith/Downloads/team/Skeledirge.tera.report.txt", skeledirgeTera);
+            File.WriteAllBytes("/Users/jimmy.somsanith/Downloads/team/Skeledirge.tera.pk9", skeledirgeTera.DecryptedPartyData);
+
+            PK9 quaquaval = Quaquaval.bestBuild();
+            //PKUtils.writeDetails("/Users/jimmy.somsanith/Downloads/team/Quaquaval.best.details.txt", quaquaval);
+            PKUtils.checkLegality("/Users/jimmy.somsanith/Downloads/team/Quaquaval.best.report.txt", quaquaval);
+            File.WriteAllBytes("/Users/jimmy.somsanith/Downloads/team/Quaquaval.best.pk9", quaquaval.DecryptedPartyData);
+            */
         }
-	}
+    }
 }
 
